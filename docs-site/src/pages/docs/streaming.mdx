@@ -1,0 +1,110 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Streaming & Raw Body
+---
+
+# Streaming & Raw Body
+
+GoNest provides utilities for **streaming file downloads** and accessing the **raw request body**.
+
+## StreamableFile
+
+`StreamableFile` wraps an `io.Reader` to stream file downloads with proper headers. Equivalent to NestJS `StreamableFile`.
+
+### From an io.Reader
+
+```go
+func (c *Controller) download(ctx gonest.Context) error {
+    file, err := os.Open("reports/annual.pdf")
+    if err != nil {
+        return gonest.NewNotFoundException("file not found")
+    }
+
+    sf := gonest.NewStreamableFile(file,
+        gonest.WithFileName("annual-report.pdf"),
+        gonest.WithContentType("application/pdf"),
+        gonest.WithLength(fileInfo.Size()),
+    )
+    return sf.Send(ctx)
+}
+```
+
+### From Bytes
+
+```go
+func (c *Controller) export(ctx gonest.Context) error {
+    data := generateCSV()
+
+    sf := gonest.NewStreamableFileFromBytes(data,
+        gonest.WithFileName("export.csv"),
+        gonest.WithContentType("text/csv"),
+    )
+    return sf.Send(ctx)
+}
+```
+
+### Options
+
+| Option | Description |
+|---|---|
+| `WithContentType(ct)` | Set the `Content-Type` header. Default: `application/octet-stream` |
+| `WithFileName(name)` | Set download filename and `Content-Disposition: attachment` |
+| `WithDisposition(d)` | Set `Content-Disposition` directly |
+| `WithLength(n)` | Set `Content-Length` header |
+
+Content type is **auto-detected** from the file extension when using `WithFileName` and no explicit content type is set.
+
+### StreamableFile API
+
+| Method | Description |
+|---|---|
+| `Send(ctx)` | Stream the file to the response |
+| `GetContentType()` | Returns the configured content type |
+| `GetDisposition()` | Returns the configured content disposition |
+| `GetLength()` | Returns the configured content length |
+
+The reader is automatically closed after streaming if it implements `io.Closer`.
+
+---
+
+## Raw Body
+
+Access the raw request body as `[]byte`. The body is cached on first read so it can be accessed multiple times alongside `Bind()`. Equivalent to NestJS `@RawBody()`.
+
+### Direct Usage
+
+```go
+func (c *Controller) webhook(ctx gonest.Context) error {
+    body, err := gonest.RawBody(ctx)
+    if err != nil {
+        return err
+    }
+
+    // Verify webhook signature using raw bytes
+    if !verifySignature(body, ctx.Header("X-Signature")) {
+        return gonest.NewUnauthorizedException("invalid signature")
+    }
+
+    // Bind() still works after RawBody()
+    var payload WebhookPayload
+    if err := ctx.Bind(&payload); err != nil {
+        return err
+    }
+
+    return ctx.NoContent(http.StatusOK)
+}
+```
+
+### RawBodyMiddleware
+
+For routes where you always need raw body access, apply the middleware to pre-read and cache the body:
+
+```go
+// Global
+app.UseGlobalMiddleware(gonest.NewRawBodyMiddleware())
+
+// Or per-route via middleware consumer
+consumer.Apply(gonest.NewRawBodyMiddleware()).ForRoutes("/webhooks/*")
+```
+
+With the middleware applied, both `RawBody()` and `Bind()` work in any order without issues.

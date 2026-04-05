@@ -1,0 +1,94 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Injection Scopes
+---
+
+# Injection Scopes
+
+Every provider in GoNest has a **scope** that determines its lifetime. Understanding scopes is essential for managing state and performance in your application. Equivalent to NestJS injection scopes.
+
+## Available Scopes
+
+| Scope | Constant | Description |
+|---|---|---|
+| **Singleton** | `ScopeSingleton` | One shared instance for the entire application (default) |
+| **Request** | `ScopeRequest` | A new instance is created for each incoming HTTP request |
+| **Transient** | `ScopeTransient` | A new instance is created every time the provider is injected |
+
+## Singleton Scope (Default)
+
+Singleton providers are created once and shared everywhere. This is the default and the most efficient scope.
+
+```go
+// These are all singletons:
+gonest.Provide(NewCatsService)
+gonest.ProvideValue[*Config](cfg)
+gonest.ProvideFactory[*DB](NewDBConnection)
+```
+
+Use singletons for:
+- Stateless services
+- Database connection pools
+- Configuration
+- Shared caches
+
+## Request Scope
+
+Request-scoped providers get a fresh instance per HTTP request. Useful when you need per-request state.
+
+```go
+gonest.ProvideWithScope(NewRequestLogger, gonest.ScopeRequest)
+```
+
+```go
+type RequestLogger struct {
+    requestID string
+}
+
+func NewRequestLogger() *RequestLogger {
+    return &RequestLogger{
+        requestID: uuid.New().String(),
+    }
+}
+```
+
+Every handler in the same request receives the same `RequestLogger` instance, but different requests get different instances.
+
+## Transient Scope
+
+Transient providers create a new instance every time they are injected. No instance is shared.
+
+```go
+gonest.ProvideWithScope(NewWorker, gonest.ScopeTransient)
+```
+
+Use transient scope when each consumer needs its own independent instance.
+
+## Scope Propagation
+
+Scopes propagate through the dependency chain. If a singleton depends on a request-scoped provider, the singleton is **automatically elevated** to request scope.
+
+```go
+// RequestService is request-scoped
+gonest.ProvideWithScope(NewRequestService, gonest.ScopeRequest)
+
+// CatsService depends on RequestService
+// Even though CatsService is registered as singleton, it becomes
+// request-scoped because its dependency is request-scoped.
+gonest.Provide(NewCatsService) // func NewCatsService(rs *RequestService) *CatsService
+```
+
+This ensures correctness: a singleton would otherwise hold a stale reference to a request-scoped dependency.
+
+The container resolves the **effective scope** by taking the broadest scope in the dependency chain:
+- Singleton + Request dependency = Request
+- Singleton + Transient dependency = Transient
+- Request + Transient dependency = Transient
+
+## Performance Considerations
+
+- **Singleton** is the most efficient -- one allocation, no per-request overhead
+- **Request** adds per-request allocation but shares within a request
+- **Transient** allocates on every injection point
+
+Default to singleton unless you have a specific reason to use request or transient scope. Most services are stateless and work perfectly as singletons.

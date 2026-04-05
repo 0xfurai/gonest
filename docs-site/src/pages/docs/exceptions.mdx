@@ -1,0 +1,105 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: HTTP Exceptions
+---
+
+# HTTP Exceptions
+
+GoNest provides a comprehensive set of built-in **HTTP exception types** for signaling errors in the request pipeline. When thrown, exceptions are caught by [exception filters](/docs/filters) and converted to JSON error responses.
+
+## Using Exceptions
+
+Throw exceptions from handlers, guards, pipes, or interceptors by returning them as errors:
+
+```go
+func (c *Controller) findOne(ctx gonest.Context) error {
+    cat := c.service.FindOne(id)
+    if cat == nil {
+        return gonest.NewNotFoundException("cat not found")
+    }
+    return ctx.JSON(http.StatusOK, cat)
+}
+```
+
+## Default Error Response
+
+The built-in `DefaultExceptionFilter` produces JSON responses in this format:
+
+```json
+{
+  "statusCode": 404,
+  "message": "cat not found",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "path": "/cats/99"
+}
+```
+
+## Built-in Exceptions
+
+| Constructor | Status | Description |
+|---|---|---|
+| `NewBadRequestException(msg)` | 400 | Malformed request |
+| `NewUnauthorizedException(msg)` | 401 | Missing or invalid credentials |
+| `NewForbiddenException(msg)` | 403 | Insufficient permissions |
+| `NewNotFoundException(msg)` | 404 | Resource not found |
+| `NewMethodNotAllowedException(msg)` | 405 | HTTP method not supported |
+| `NewNotAcceptableException(msg)` | 406 | Content negotiation failed |
+| `NewRequestTimeoutException(msg)` | 408 | Request timed out |
+| `NewConflictException(msg)` | 409 | Resource conflict |
+| `NewGoneException(msg)` | 410 | Resource permanently removed |
+| `NewPreconditionFailedException(msg)` | 412 | Precondition not met |
+| `NewPayloadTooLargeException(msg)` | 413 | Request body too large |
+| `NewUnsupportedMediaTypeException(msg)` | 415 | Content type not supported |
+| `NewImATeapotException(msg)` | 418 | I'm a teapot |
+| `NewMisdirectedException(msg)` | 421 | Misdirected request |
+| `NewUnprocessableEntityException(msg)` | 422 | Validation failed |
+| `NewTooManyRequestsException(msg)` | 429 | Rate limit exceeded |
+| `NewInternalServerError(msg)` | 500 | Unexpected server error |
+| `NewNotImplementedException(msg)` | 501 | Not implemented |
+| `NewBadGatewayException(msg)` | 502 | Bad gateway |
+| `NewServiceUnavailableException(msg)` | 503 | Service unavailable |
+| `NewGatewayTimeoutException(msg)` | 504 | Gateway timeout |
+| `NewHttpVersionNotSupportedException(msg)` | 505 | HTTP version not supported |
+
+## Custom Exceptions
+
+Create exceptions with any status code:
+
+```go
+gonest.NewHTTPException(http.StatusTeapot, "I'm a teapot")
+```
+
+### Wrapping Errors
+
+Wrap an underlying error for debugging while returning a clean HTTP response:
+
+```go
+result, err := db.Query(sql)
+if err != nil {
+    return gonest.WrapHTTPException(
+        http.StatusInternalServerError,
+        "database query failed",
+        err,
+    )
+}
+```
+
+The wrapped error is accessible via `Unwrap()` for logging or inspection in custom exception filters.
+
+## HTTPException API
+
+```go
+type HTTPException struct {
+    StatusCode int
+    Message    string
+    Cause      error // optional wrapped error
+}
+
+// Implements the error interface
+func (e *HTTPException) Error() string
+func (e *HTTPException) Unwrap() error
+```
+
+## Exception Filters
+
+See [Exception Filters](/docs/filters) for how to customize error handling with global, controller-level, and route-level filters.

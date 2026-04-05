@@ -1,0 +1,213 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Dynamic Modules
+---
+
+# Dynamic Modules
+
+Dynamic modules accept **runtime configuration** when imported, enabling reusable, configurable feature modules. GoNest supports the `ForRoot`/`ForFeature` pattern and provides a `ConfigurableModuleBuilder` for building dynamic modules with minimal boilerplate. Equivalent to NestJS dynamic modules.
+
+## Basic Dynamic Module
+
+Create a module that accepts configuration at import time:
+
+```go
+type DatabaseOptions struct {
+    Host     string
+    Port     int
+    Database string
+}
+
+func NewDatabaseModule(opts DatabaseOptions) *gonest.Module {
+    return gonest.NewModule(gonest.ModuleOptions{
+        Providers: []any{
+            gonest.ProvideFactory[*DatabaseConnection](func() *DatabaseConnection {
+                return Connect(opts.Host, opts.Port, opts.Database)
+            }),
+        },
+        Exports: []any{(*DatabaseConnection)(nil)},
+    })
+}
+
+// Import with configuration
+var AppModule = gonest.NewModule(gonest.ModuleOptions{
+    Imports: []*gonest.Module{
+        NewDatabaseModule(DatabaseOptions{
+            Host: "localhost", Port: 5432, Database: "mydb",
+        }),
+    },
+})
+```
+
+## ForRoot / ForFeature Pattern
+
+Use `ForRoot` for one-time global configuration and `ForFeature` for feature-specific configuration:
+
+```go
+var baseDatabaseModule = gonest.NewDynamicModule(gonest.ModuleOptions{
+    Providers: []any{NewDatabaseConnection},
+    Exports:   []any{(*DatabaseConnection)(nil)},
+})
+
+// ForRoot -- configure once at the root level (global)
+var DbModule = gonest.ForRoot[DatabaseOptions](baseDatabaseModule, DatabaseOptions{
+    Host: "localhost", Port: 5432, Database: "mydb",
+})
+
+// ForFeature -- per-feature configuration
+var UsersDbModule = gonest.ForFeature[FeatureOptions](baseDatabaseModule, FeatureOptions{
+    Table: "users",
+})
+```
+
+## ConfigurableModuleBuilder
+
+For complex dynamic modules, use `ConfigurableModuleBuilder` to reduce boilerplate:
+
+```go
+type CacheModuleOptions struct {
+    TTL      time.Duration
+    MaxItems int
+}
+
+var cacheBuilder = gonest.NewConfigurableModuleBuilder[CacheModuleOptions]()
+
+func NewCacheModule(opts CacheModuleOptions) *gonest.Module {
+    return cacheBuilder.Build(opts, func(opts CacheModuleOptions) gonest.ModuleOptions {
+        return gonest.ModuleOptions{
+            Providers: []any{
+                gonest.ProvideFactory[*CacheStore](func() *CacheStore {
+                    return NewCacheStore(opts.TTL, opts.MaxItems)
+                }),
+            },
+            Exports: []any{(*CacheStore)(nil)},
+        }
+    })
+}
+```
+
+### Global Modules
+
+Mark a builder as global so its exports are available everywhere:
+
+```go
+var builder = gonest.NewConfigurableModuleBuilder[MyOptions]()
+builder.SetGlobal()
+```
+
+### Async Configuration
+
+Use `BuildAsync` when configuration depends on other providers (e.g., reading from a config service):
+
+```go
+func NewCacheModuleAsync() *gonest.Module {
+    return cacheBuilder.BuildAsync(
+        gonest.AsyncModuleOptions[CacheModuleOptions]{
+            Imports: []*gonest.Module{config.NewModule()},
+            Factory: func() (CacheModuleOptions, error) {
+                // Read from environment or config
+                ttl, _ := time.ParseDuration(os.Getenv("CACHE_TTL"))
+                return CacheModuleOptions{
+                    TTL:      ttl,
+                    MaxItems: 1000,
+                }, nil
+            },
+        },
+        func(opts CacheModuleOptions) gonest.ModuleOptions {
+            return gonest.ModuleOptions{
+                Providers: []any{
+                    gonest.ProvideFactory[*CacheStore](func() *CacheStore {
+                        return NewCacheStore(opts.TTL, opts.MaxItems)
+                    }),
+                },
+                Exports: []any{(*CacheStore)(nil)},
+            }
+        },
+    )
+}
+```
+
+## Lazy Module Loading
+
+Load modules **on demand** at runtime using `LazyModuleLoader`. This is useful for expensive resources that should only be initialized when first needed. Equivalent to NestJS `LazyModuleLoader`.
+
+```go
+loader := app.GetLazyModuleLoader()
+
+lazyMod, err := loader.Load(func() *gonest.Module {
+    return gonest.NewModule(gonest.ModuleOptions{
+        Providers: []any{NewExpensiveService},
+        Exports:   []any{(*ExpensiveService)(nil)},
+    })
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Resolve from the lazy module
+svc, err := gonest.LazyModuleResolve[*ExpensiveService](lazyMod)
+```
+
+When a module is lazy-loaded:
+1. The module is compiled against the existing application container
+2. Providers are resolved
+3. `OnApplicationBootstrap` hooks are called
+4. The module's providers are available via the returned `LazyLoadedModule`
+
+### LazyLoadedModule API
+
+| Method | Description |
+|---|---|
+| `Get(reflect.Type)` | Resolve a provider by type |
+| `LazyModuleResolve[T](lm)` | Generic typed resolution |
+
+## Forward References
+
+Use `ForwardRef` to resolve circular dependencies between providers:
+
+```go
+var ProviderA = gonest.Provide(NewServiceA)
+var ProviderB = gonest.Provide(NewServiceB)
+
+// ServiceA depends on ServiceB and vice versa
+var Module = gonest.NewModule(gonest.ModuleOptions{
+    Providers: []any{
+        gonest.ForwardRef(func() any { return NewServiceA }),
+        gonest.ForwardRef(func() any { return NewServiceB }),
+    },
+})
+```
+
+The inner function is called lazily at resolution time, after all providers are registered.
+
+## ModuleRef
+
+Access the DI container at runtime using `ModuleRef`:
+
+```go
+type MyService struct {
+    ref *gonest.ModuleRef
+}
+
+func NewMyService(ref *gonest.ModuleRef) *MyService {
+    return &MyService{ref: ref}
+}
+
+func (s *MyService) DoWork() {
+    // Resolve dynamically at runtime
+    svc, _ := gonest.ModuleRefResolve[*OtherService](s.ref)
+
+    // Check existence
+    if s.ref.Has(reflect.TypeOf((*OtherService)(nil))) {
+        // ...
+    }
+
+    // Resolve by token
+    val, _ := s.ref.ResolveByToken("API_KEY")
+
+    // Create a transient instance on demand
+    worker, _ := s.ref.Create(NewWorker)
+}
+```
+
+See `example/16-dynamic-modules` for a complete working example.

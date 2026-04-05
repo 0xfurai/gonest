@@ -1,0 +1,124 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Controllers
+---
+
+# Controllers
+
+Controllers handle incoming HTTP requests and return responses. They implement the `Controller` interface by defining a `Register(Router)` method.
+
+## Basic Controller
+
+```go
+type CatsController struct {
+    service *CatsService
+}
+
+func NewCatsController(service *CatsService) *CatsController {
+    return &CatsController{service: service}
+}
+
+func (c *CatsController) Register(r gonest.Router) {
+    r.Prefix("/cats")                              // URL prefix
+    r.Get("/", c.findAll)                           // GET /cats
+    r.Get("/:id", c.findOne)                        // GET /cats/42
+    r.Post("/", c.create)                           // POST /cats
+    r.Patch("/:id", c.update)                       // PATCH /cats/42
+    r.Delete("/:id", c.remove)                      // DELETE /cats/42
+}
+```
+
+## Route Handlers
+
+Every handler receives a `Context` and returns an `error`:
+
+```go
+func (c *CatsController) findAll(ctx gonest.Context) error {
+    cats := c.service.FindAll()
+    return ctx.JSON(http.StatusOK, cats)
+}
+
+func (c *CatsController) create(ctx gonest.Context) error {
+    var dto CreateCatDto
+    if err := ctx.Bind(&dto); err != nil {
+        return err  // returns 400 Bad Request automatically
+    }
+    cat := c.service.Create(dto)
+    return ctx.JSON(http.StatusCreated, cat)
+}
+```
+
+## Request Data
+
+```go
+// Path parameters
+id := ctx.Param("id")             // returns any (string by default, or transformed by pipe)
+
+// Query parameters
+page := ctx.Query("page")          // returns string
+values := ctx.QueryValues()         // returns url.Values
+
+// Headers
+auth := ctx.Header("Authorization")
+
+// Body (JSON)
+var dto CreateCatDto
+ctx.Bind(&dto)
+
+// Cookies
+cookie, _ := ctx.Cookie("session")
+```
+
+## Response Methods
+
+```go
+ctx.JSON(200, data)                // JSON response
+ctx.String(200, "hello")           // Plain text
+ctx.NoContent(204)                 // No body
+ctx.Redirect(301, "/new-url")      // Redirect
+ctx.SetHeader("X-Custom", "val")   // Set header
+ctx.SetCookie(&http.Cookie{...})   // Set cookie
+```
+
+## Route-Level Configuration
+
+The fluent builder lets you attach guards, pipes, interceptors, and metadata per-route:
+
+```go
+r.Post("/", c.create).
+    Guards(&AdminGuard{}).                              // Route guard
+    Pipes(gonest.NewParseIntPipe("id")).                 // Transform params
+    Interceptors(&LoggingInterceptor{}).                 // Wrap handler
+    SetMetadata("roles", []string{"admin"}).             // Metadata for guards
+    HttpCode(http.StatusCreated).                        // Default status code
+    Header("Cache-Control", "no-store")                  // Response header
+```
+
+## Controller-Level Guards and Interceptors
+
+Apply to all routes in the controller:
+
+```go
+func (c *CatsController) Register(r gonest.Router) {
+    r.Prefix("/cats")
+    r.UseGuards(&AuthGuard{})                  // All routes require auth
+    r.UseInterceptors(&TimingInterceptor{})    // Time all routes
+    r.UsePipes(gonest.NewValidationPipe())     // Validate all bodies
+
+    r.Get("/", c.findAll)
+    r.Post("/", c.create)
+}
+```
+
+## All HTTP Methods
+
+```go
+r.Get(path, handler)
+r.Post(path, handler)
+r.Put(path, handler)
+r.Patch(path, handler)
+r.Delete(path, handler)
+r.Options(path, handler)
+r.Head(path, handler)
+r.All(path, handler)      // All methods
+```

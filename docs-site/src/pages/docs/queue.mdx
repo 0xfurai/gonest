@@ -1,0 +1,49 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Queues
+---
+
+# Queues
+
+The `queue` module provides in-memory job queues with configurable workers and retry support.
+
+```go
+import "github.com/gonest/queue"
+
+q := queue.NewQueue("emails", 100)  // buffer size 100
+q.SetWorkers(4)                      // 4 concurrent workers
+
+// Register processor
+q.Process("send-welcome", func(job *queue.Job) error {
+    var data WelcomeData
+    json.Unmarshal(job.Data, &data)
+    return sendEmail(data.Email, data.Name)
+})
+
+// Start processing
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+q.Start(ctx)
+```
+
+## Adding Jobs
+
+```go
+q.Add("send-welcome", WelcomeData{Email: "user@example.com", Name: "Alice"})
+
+// With retry
+q.Add("send-welcome", data, queue.JobOptions{MaxRetries: 3})
+```
+
+## Job Object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ID` | `string` | Unique job ID |
+| `Name` | `string` | Job type |
+| `Data` | `json.RawMessage` | Serialized payload |
+| `Attempts` | `int` | Current attempt count |
+| `MaxRetries` | `int` | Max retry count |
+| `CreatedAt` | `time.Time` | Creation time |
+
+Failed jobs with remaining retries are automatically re-queued.

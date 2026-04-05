@@ -1,0 +1,60 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Serialization
+---
+
+# Serialization
+
+The `SerializerInterceptor` controls which fields appear in API responses using struct tags. This prevents sensitive data like passwords from leaking.
+
+## Usage
+
+```go
+r.UseInterceptors(gonest.NewSerializerInterceptor())
+```
+
+## Struct Tags
+
+```go
+type User struct {
+    ID       int    `json:"id"`
+    Name     string `json:"name"`
+    Email    string `json:"email"`
+    Password string `json:"password" serialize:"exclude"`      // Never exposed
+    SSN      string `json:"ssn"      serialize:"group=admin"`  // Only for admin group
+    Role     string `json:"role"     serialize:"expose"`        // Always included
+}
+```
+
+| Tag | Effect |
+|-----|--------|
+| `serialize:"exclude"` | Always removed from response |
+| `serialize:"expose"` | Always included (default behavior) |
+| `serialize:"group=admin"` | Only included when "admin" group is active |
+
+## Groups
+
+Activate serialization groups via route metadata:
+
+```go
+// Regular users see: id, name, email, role
+r.Get("/users", c.list)
+
+// Admins also see SSN
+r.Get("/users/admin", c.listAdmin).
+    SetMetadata("serialize_groups", []string{"admin"})
+```
+
+## Example Response
+
+Without admin group:
+```json
+{"id": 1, "name": "Alice", "email": "alice@example.com", "role": "admin"}
+```
+
+With admin group:
+```json
+{"id": 1, "name": "Alice", "email": "alice@example.com", "role": "admin", "ssn": "123-45-6789"}
+```
+
+Password is **never** included regardless of group.

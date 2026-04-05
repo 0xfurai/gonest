@@ -1,0 +1,104 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Modules
+---
+
+# Modules
+
+Modules are the foundation of GoNest's architecture. Every feature is encapsulated in a module that declares its controllers, providers, imports, and exports.
+
+## Defining a Module
+
+```go
+var CatsModule = gonest.NewModule(gonest.ModuleOptions{
+    Controllers: []any{NewCatsController},
+    Providers:   []any{NewCatsService, NewCatsRepository},
+    Imports:     []*gonest.Module{DatabaseModule},
+    Exports:     []any{(*CatsService)(nil)},
+})
+```
+
+| Field | Purpose |
+|-------|---------|
+| `Controllers` | Constructor functions for controllers |
+| `Providers` | Constructor functions or `Provider` structs |
+| `Imports` | Other modules whose exports are available here |
+| `Exports` | Types that importing modules can access |
+| `Global` | If true, exports are available to all modules |
+
+## Module Composition
+
+```go
+var AppModule = gonest.NewModule(gonest.ModuleOptions{
+    Imports: []*gonest.Module{
+        CatsModule,
+        UsersModule,
+        AuthModule,
+    },
+})
+```
+
+## Exporting Providers
+
+To share a provider across modules, export it:
+
+```go
+var SharedModule = gonest.NewModule(gonest.ModuleOptions{
+    Providers: []any{NewSharedService},
+    Exports:   []any{(*SharedService)(nil)}, // nil pointer = type reference
+})
+```
+
+Other modules can then import it and inject `*SharedService`.
+
+## Global Modules
+
+Set `Global: true` to make exports available everywhere without importing:
+
+```go
+var ConfigModule = gonest.NewModule(gonest.ModuleOptions{
+    Providers: []any{NewConfigService},
+    Exports:   []any{(*ConfigService)(nil)},
+    Global:    true,
+})
+```
+
+## Dynamic Modules
+
+For modules that need runtime configuration (like the ForRoot/ForFeature pattern):
+
+```go
+func NewDatabaseModule(dsn string) *gonest.Module {
+    return gonest.NewDynamicModule(gonest.DynamicModule{
+        Providers: []any{
+            gonest.ProvideValue[string](dsn),
+            NewDatabaseConnection,
+        },
+        Exports: []any{(*DatabaseConnection)(nil)},
+        Global:  true,
+    })
+}
+
+// Or using the ForRoot helper:
+var DBModule = gonest.ForRoot(DBOptions{DSN: "postgres://..."}, func(opts DBOptions) *gonest.Module {
+    return gonest.NewModule(gonest.ModuleOptions{
+        Providers: []any{gonest.ProvideValue[DBOptions](opts)},
+        Exports:   []any{gonest.ProvideValue[DBOptions](opts)},
+    })
+})
+```
+
+## Middleware Configuration
+
+Modules can configure middleware by implementing `MiddlewareConfigurer`:
+
+```go
+type AppModule struct{}
+
+func (m *AppModule) Configure(consumer gonest.MiddlewareConsumer) {
+    consumer.
+        Apply(NewLoggerMiddleware()).
+        Exclude("/health").
+        ForRoutes("/api/*")
+}
+```

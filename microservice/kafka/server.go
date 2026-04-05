@@ -1,0 +1,167 @@
+package kafka
+
+import (
+	"bufio"
+	"encoding/json"
+	"net"
+	"sync"
+	"sync/atomic"
+
+	"github.com/gonest/microservice"
+)
+
+// kafkaRequest is the wire format for Kafka-style requests.
+// The Topic field carries the Kafka topic (maps from Pattern.Cmd).
+type kafkaRequest struct {
+	Pattern   microservice.Pattern `json:"pattern"`
+	Data      json.RawMessage      `json:"data"`
+	ID        string               `json:"id"`
+	IsEvent   bool                 `json:"isEvent,omitempty"`
+	Topic     string               `json:"topic"`
+	Key       string               `json:"key,omitempty"`
+	Partition int                  `json:"partition,omitempty"`
+	Headers   map[string]string    `json:"headers,omitempty"`
+}
+
+// kafkaResponse is the wire format for Kafka-style responses.
+type kafkaResponse struct {
+	ID        string          `json:"id"`
+	Data      json.RawMessage `json:"data,omitempty"`
+	Error     string          `json:"error,omitempty"`
+	Topic     string          `json:"topic,omitempty"`
+	Partition int             `json:"partition,omitempty"`
+	Offset    int64           `json:"offset,omitempty"`
+}
+
+// Server implements a Kafka-style microservice server using TCP with
+// topic-based routing. Pattern.Cmd is used as the Kafka topic name.
+// Simulates partitions and offsets for Kafka semantics.
+type Server struct {
+	opts            Options
+	messageHandlers map[string]microservice.MessageHandler
+	eventHandlers   map[string]microservice.EventHandler
+	listener        net.Listener
+	mu              sync.RWMutex
+	done            chan struct{}
+	offset          atomic.Int64 // simulated global offset counter
+}
+
+// NewServer creates a new Kafka-style microservice server.
+func NewServer(opts Options) *Server {
+	return &Server{
+		opts:            opts,
+		messageHandlers: make(map[string]microservice.MessageHandler),
+		eventHandlers:   make(map[string]microservice.EventHandler),
+		done:            make(chan struct{}),
+	}
+}
+
+func (s *Server) AddMessageHandler(pattern microservice.Pattern, handler microservice.MessageHandler) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.messageHandlers[pattern.Cmd] = handler
+}
+
+func (s *Server) AddEventHandler(pattern microservice.Pattern, handler microservice.EventHandler) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.eventHandlers[pattern.Cmd] = handler
+}
+
+func (s *Server) Listen() error {
+	ln, err := net.Listen("tcp", s.opts.Address())
+	if err != nil {
+		return err
+	}
+	s.listener = ln
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				select {
+				case <-s.done:
+					return
+				default:
+					continue
+				}
+			}
+			go s.handleConn(conn)
+		}
+	}()
+
+	return nil
+}
+
+func (s *Server) Close() error {
+	close(s.done)
+	if s.listener != nil {
+		return s.listener.Close()
+	}
+	return nil
+}
+
+func (s *Server) handleConn(conn net.Conn) {
+	defer conn.Close()
+	scanner := bufio.NewScanner(conn)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		var req kafkaRequest
+		if err := json.Unmarshal(line, &req); err != nil {
+			continue
+		}
+
+		// Use topic for routing; fall back to pattern cmd
+		routeKey := req.Topic
+		if routeKey == "" {
+			routeKey = req.Pattern.Cmd
+		}
+
+		// Assign simulated offset
+		currentOffset := s.offset.Add(1)
+
+		msgCtx := &microservice.MessageContext{
+			Pattern:   microservice.Pattern{Cmd: routeKey},
+			Transport: microservice.TransportKafka,
+			Data:      req.Data,
+		}
+
+		if req.IsEvent {
+			s.mu.RLock()
+			handler, ok := s.eventHandlers[routeKey]
+			s.mu.RUnlock()
+			if ok {
+				_ = handler(msgCtx)
+			}
+			continue
+		}
+
+		s.mu.RLock()
+		handler, ok := s.messageHandlers[routeKey]
+		s.mu.RUnlock()
+
+		var resp kafkaResponse
+		resp.ID = req.ID
+		resp.Topic = routeKey
+		resp.Partition = req.Partition
+		resp.Offset = currentOffset
+
+		if !ok {
+			resp.Error = "no handler for topic: " + routeKey
+		} else {
+			result, err := handler(msgCtx)
+			if err != nil {
+				resp.Error = err.Error()
+			} else {
+				data, _ := json.Marshal(result)
+				resp.Data = data
+			}
+		}
+
+		respBytes, _ := json.Marshal(resp)
+		respBytes = append(respBytes, '\n')
+		conn.Write(respBytes)
+	}
+}

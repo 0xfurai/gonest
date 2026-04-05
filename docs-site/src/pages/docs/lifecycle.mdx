@@ -1,0 +1,109 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Lifecycle Hooks
+---
+
+# Lifecycle Hooks
+
+GoNest provides **lifecycle hook interfaces** that let providers respond to key application events. Equivalent to NestJS lifecycle events.
+
+## Hook Interfaces
+
+Implement any of these interfaces on your providers:
+
+| Interface | Method | When Called |
+|---|---|---|
+| `OnModuleInit` | `OnModuleInit() error` | After the module's providers are resolved |
+| `OnApplicationBootstrap` | `OnApplicationBootstrap() error` | After all modules are initialized |
+| `BeforeApplicationShutdown` | `BeforeApplicationShutdown(signal string) error` | Before shutdown begins |
+| `OnApplicationShutdown` | `OnApplicationShutdown(signal string) error` | During shutdown |
+| `OnModuleDestroy` | `OnModuleDestroy() error` | When the module is torn down |
+
+## Execution Order
+
+```
+Application Start:
+  1. Module compilation (resolve providers)
+  2. OnModuleInit          -- per module
+  3. OnApplicationBootstrap -- all modules done
+
+Application Shutdown:
+  4. BeforeApplicationShutdown(signal)
+  5. HTTP server / transport stops
+  6. OnApplicationShutdown(signal)
+  7. OnModuleDestroy
+```
+
+## Example
+
+```go
+type DatabaseService struct {
+    pool *sql.DB
+}
+
+func NewDatabaseService(config *config.ConfigService) *DatabaseService {
+    return &DatabaseService{}
+}
+
+func (s *DatabaseService) OnModuleInit() error {
+    dsn := "postgres://localhost/mydb"
+    pool, err := sql.Open("postgres", dsn)
+    if err != nil {
+        return err
+    }
+    s.pool = pool
+    log.Println("Database connection pool initialized")
+    return nil
+}
+
+func (s *DatabaseService) OnApplicationBootstrap() error {
+    // Run migrations after all modules are ready
+    return s.runMigrations()
+}
+
+func (s *DatabaseService) BeforeApplicationShutdown(signal string) error {
+    log.Printf("Shutdown signal received: %s, draining connections...", signal)
+    return nil
+}
+
+func (s *DatabaseService) OnApplicationShutdown(signal string) error {
+    log.Println("Closing database pool")
+    return s.pool.Close()
+}
+```
+
+## Graceful Shutdown
+
+Enable OS signal handling for graceful shutdown:
+
+```go
+app := gonest.Create(AppModule)
+app.EnableShutdownHooks(syscall.SIGINT, syscall.SIGTERM)
+app.ListenAndServeWithGracefulShutdown(":3000")
+```
+
+When a signal is received, the application:
+
+1. Calls `BeforeApplicationShutdown` on all providers (with the signal name)
+2. Stops accepting new connections and drains existing ones
+3. Calls `OnApplicationShutdown` on all providers
+4. Destroys all modules (calls `OnModuleDestroy`)
+5. Exits
+
+If no signals are specified, `EnableShutdownHooks` defaults to `SIGINT` and `SIGTERM`.
+
+### Manual Shutdown
+
+You can also shut down programmatically:
+
+```go
+// Without signal info
+app.Close()
+
+// With signal info (passed to hooks)
+app.CloseWithSignal("manual")
+```
+
+## Hooks in Lazy-Loaded Modules
+
+When modules are loaded via `LazyModuleLoader`, their `OnApplicationBootstrap` hooks are called immediately after loading. Shutdown hooks are called when the application shuts down, just like eagerly-loaded modules.

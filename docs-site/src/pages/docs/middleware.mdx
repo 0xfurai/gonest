@@ -1,0 +1,65 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Middleware
+---
+
+# Middleware
+
+Middleware runs **before the route handler pipeline** (before guards, interceptors, and pipes). Use it for logging, CORS, request parsing, and other cross-cutting concerns.
+
+## Implementing Middleware
+
+```go
+type LoggerMiddleware struct{}
+
+func (m *LoggerMiddleware) Use(ctx gonest.Context, next gonest.NextFunc) error {
+    log.Printf("[%s] %s", ctx.Method(), ctx.Path())
+    return next()
+}
+```
+
+## Function Middleware
+
+```go
+mw := gonest.MiddlewareFunc(func(ctx gonest.Context, next gonest.NextFunc) error {
+    start := time.Now()
+    err := next()
+    log.Printf("%s %s %v", ctx.Method(), ctx.Path(), time.Since(start))
+    return err
+})
+```
+
+## Global Middleware
+
+```go
+app.UseGlobalMiddleware(
+    NewRequestIDMiddleware(),
+    NewLoggerMiddleware(),
+)
+```
+
+## CORS
+
+GoNest has built-in CORS support:
+
+```go
+app.EnableCors(gonest.CorsOptions{
+    Origin:      "http://localhost:3000",
+    Methods:     "GET, POST, PUT, DELETE",
+    Headers:     "Content-Type, Authorization",
+    Credentials: true,
+})
+```
+
+## Short-Circuiting
+
+Middleware can short-circuit the pipeline by not calling `next()`:
+
+```go
+func (m *MaintenanceMiddleware) Use(ctx gonest.Context, next gonest.NextFunc) error {
+    if isMaintenanceMode {
+        return ctx.JSON(503, map[string]string{"message": "Under maintenance"})
+    }
+    return next()
+}
+```

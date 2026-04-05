@@ -1,0 +1,78 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Pipes & Validation
+---
+
+# Pipes & Validation
+
+Pipes transform or validate input before it reaches your handler. They run **after guards and interceptors (before)** but **before the handler**.
+
+## Built-in Pipes
+
+| Pipe | Purpose |
+|------|---------|
+| `NewParseIntPipe("id")` | Convert string param to `int` |
+| `NewParseBoolPipe("active")` | Convert to `bool` |
+| `NewParseFloatPipe("price")` | Convert to `float64` |
+| `NewParseUUIDPipe("id")` | Validate UUID format |
+| `NewDefaultValuePipe("page", 1)` | Provide default for nil/empty |
+| `NewParseArrayPipe("tags")` | Split comma-separated string |
+| `NewValidationPipe()` | Validate struct bodies |
+
+## Using Pipes
+
+```go
+// Route-level
+r.Get("/:id", c.findOne).Pipes(gonest.NewParseIntPipe("id"))
+
+// Controller-level
+r.UsePipes(gonest.NewValidationPipe())
+
+// Global
+app.UseGlobalPipes(gonest.NewValidationPipe())
+```
+
+## Validation
+
+The `ValidationPipe` validates structs using the `validate` tag:
+
+```go
+type CreateCatDto struct {
+    Name  string `json:"name"  validate:"required,min=2,max=50"`
+    Age   int    `json:"age"   validate:"required,gte=0,lte=30"`
+    Email string `json:"email" validate:"required,email"`
+}
+```
+
+Supported rules: `required`, `min=N`, `max=N`, `gte=N`, `lte=N`, `email`.
+
+When validation fails, a `400 Bad Request` is returned:
+
+```json
+{
+  "statusCode": 400,
+  "message": "validation failed: Name is required; Age must be >= 0"
+}
+```
+
+## Custom Pipes
+
+```go
+type TrimPipe struct{}
+
+func (p *TrimPipe) Transform(value any, meta gonest.ArgumentMetadata) (any, error) {
+    if str, ok := value.(string); ok {
+        return strings.TrimSpace(str), nil
+    }
+    return value, nil
+}
+```
+
+## PipeFunc Shorthand
+
+```go
+pipe := gonest.PipeFunc(func(value any, meta gonest.ArgumentMetadata) (any, error) {
+    // transform or validate
+    return value, nil
+})
+```

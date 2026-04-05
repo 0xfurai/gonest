@@ -1,0 +1,59 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: GraphQL
+---
+
+# GraphQL
+
+GoNest includes a built-in GraphQL engine with query/mutation resolvers and a playground UI.
+
+## Setup
+
+```go
+import "github.com/gonest/graphql"
+
+engine := graphql.NewEngine()
+
+engine.Query("cats", func(ctx *graphql.ResolverContext) (any, error) {
+    return catsService.FindAll(), nil
+})
+
+engine.Mutation("createCat", func(ctx *graphql.ResolverContext) (any, error) {
+    return catsService.Create(ctx.Args), nil
+})
+
+gqlModule := graphql.NewModule(graphql.Options{
+    Path:       "/graphql",
+    Playground: true,
+}, engine)
+```
+
+- GraphQL endpoint: `POST /graphql`
+- Playground: `GET /graphql`
+
+## Queries
+
+```bash
+curl -X POST http://localhost:3000/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"{ cats }"}'
+```
+
+## Mutations
+
+```bash
+curl -X POST http://localhost:3000/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"mutation { createCat }"}'
+```
+
+## ResolverContext
+
+| Field | Description |
+|-------|-------------|
+| `Args` | Query variables |
+| `Context` | GoNest request context |
+| `Info.FieldName` | Resolved field name |
+| `Info.ParentType` | "query" or "mutation" |
+
+> For production GraphQL, integrate with [gqlgen](https://github.com/99designs/gqlgen) for type-safe schema-first development.

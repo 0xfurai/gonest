@@ -1,0 +1,74 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Project Structure
+---
+
+# Project Structure
+
+A typical GoNest application follows a modular structure:
+
+```
+myapp/
+├── main.go                 # Bootstrap — Create, configure, Listen
+├── app_module.go           # Root module — imports all feature modules
+├── users/
+│   ├── module.go           # UsersModule definition
+│   ├── controller.go       # HTTP endpoints
+│   ├── service.go          # Business logic
+│   ├── entity.go           # Data structures
+│   └── dto.go              # Request/response DTOs
+├── auth/
+│   ├── module.go
+│   ├── controller.go
+│   ├── service.go
+│   └── guard.go            # JWT auth guard
+├── common/
+│   ├── middleware.go        # Shared middleware
+│   ├── pagination.go       # Pagination utilities
+│   └── roles.go            # Role definitions and guards
+└── go.mod
+```
+
+## Conventions
+
+| Concept | File | Purpose |
+|---------|------|---------|
+| Module | `module.go` | Wires controllers, providers, imports, exports |
+| Controller | `controller.go` | Defines HTTP routes, delegates to services |
+| Service | `service.go` | Business logic, database access |
+| Entity | `entity.go` | Data structures / models |
+| DTO | `dto.go` | Request validation structs |
+| Guard | `guard.go` | Authorization logic |
+
+## The Root Module
+
+Every application has one root module that imports all feature modules:
+
+```go
+var AppModule = gonest.NewModule(gonest.ModuleOptions{
+    Imports: []*gonest.Module{
+        users.Module,
+        auth.Module,
+        articles.Module,
+        health.NewModule(health.Options{...}),
+    },
+})
+```
+
+## The Bootstrap File
+
+`main.go` creates the application and configures global concerns:
+
+```go
+func main() {
+    app := gonest.Create(AppModule)
+
+    // Global middleware, guards, pipes, filters
+    app.UseGlobalMiddleware(NewLoggerMiddleware())
+    app.UseGlobalGuards(auth.NewJWTGuard(authService))
+    app.UseGlobalPipes(gonest.NewValidationPipe())
+    app.EnableCors()
+
+    log.Fatal(app.Listen(":3000"))
+}
+```

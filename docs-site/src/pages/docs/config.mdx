@@ -1,0 +1,55 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Config
+---
+
+# Configuration
+
+The `config` module loads configuration from environment variables and `.env` files.
+
+## Setup
+
+```go
+import "github.com/gonest/config"
+
+var ConfigModule = config.NewModule(config.ModuleOptions{
+    EnvFilePath: ".env",
+    IsGlobal:    true,
+})
+```
+
+## Usage
+
+Inject `*config.ConfigService` into any provider:
+
+```go
+func NewDatabaseService(cfg *config.ConfigService) *DatabaseService {
+    return &DatabaseService{
+        host: cfg.GetOrDefault("DB_HOST", "localhost"),
+        port: cfg.GetIntOrDefault("DB_PORT", 5432),
+    }
+}
+```
+
+## API
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `Get(key)` | `string` | Get value (env file, then OS env) |
+| `GetOrDefault(key, default)` | `string` | With fallback |
+| `GetInt(key)` | `int, error` | Parse as int |
+| `GetIntOrDefault(key, default)` | `int` | Int with fallback |
+| `GetBool(key)` | `bool, error` | Parse as bool |
+| `GetBoolOrDefault(key, default)` | `bool` | Bool with fallback |
+| `Has(key)` | `bool` | Check existence |
+| `Set(key, value)` | — | Set at runtime |
+
+## .env File Format
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME="mydb"
+DB_PASS='secret'
+# Comments supported
+```

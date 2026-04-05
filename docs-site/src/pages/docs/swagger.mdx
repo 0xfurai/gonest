@@ -1,0 +1,63 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Swagger / OpenAPI
+---
+
+# Swagger / OpenAPI
+
+The `swagger` module auto-generates OpenAPI 3.0 documentation and serves Swagger UI.
+
+## Setup
+
+```go
+import "github.com/gonest/swagger"
+
+swaggerModule := swagger.Module(swagger.Options{
+    Title:       "My API",
+    Description: "API documentation",
+    Version:     "1.0.0",
+    Path:        "/docs",
+})
+
+appModule := gonest.NewModule(gonest.ModuleOptions{
+    Imports: []*gonest.Module{swaggerModule, ...},
+})
+```
+
+- Swagger UI: `GET /docs/`
+- OpenAPI JSON: `GET /docs/json`
+
+## Documenting DTOs
+
+Use struct tags for schema generation:
+
+```go
+type CreateCatDto struct {
+    Name  string `json:"name"  validate:"required" swagger:"example=Kitty,description=Cat name"`
+    Age   int    `json:"age"   validate:"required,gte=0" swagger:"example=3"`
+    Breed string `json:"breed" validate:"required" swagger:"example=Maine Coon"`
+}
+```
+
+## Adding Routes to Spec
+
+```go
+gen := swagger.NewGenerator(opts)
+gen.AddRoute(swagger.RouteInfo{
+    Method:       "POST",
+    Path:         "/cats",
+    Summary:      "Create a cat",
+    Tags:         []string{"cats"},
+    RequestBody:  reflect.TypeOf(CreateCatDto{}),
+    ResponseType: reflect.TypeOf(Cat{}),
+    StatusCode:   201,
+})
+```
+
+## Swagger Tag Options
+
+| Tag | Purpose |
+|-----|---------|
+| `swagger:"example=value"` | Example value |
+| `swagger:"description=text"` | Field description |
+| `swagger:"format=date-time"` | OpenAPI format |

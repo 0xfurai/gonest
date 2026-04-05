@@ -1,0 +1,143 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Sessions
+---
+
+# Sessions
+
+GoNest provides cookie-based **session management** with pluggable storage backends. Sessions let you persist user-specific data across multiple requests. Equivalent to NestJS `express-session` integration.
+
+## Setup
+
+Configure the session middleware with a store and options:
+
+```go
+store := gonest.NewMemorySessionStore(24 * time.Hour)
+
+app := gonest.Create(AppModule)
+app.SetSessionStore(store)
+app.UseGlobalMiddleware(gonest.NewSessionMiddleware(gonest.SessionOptions{
+    Store:      store,
+    CookieName: "gonest.sid",      // default
+    MaxAge:     24 * time.Hour,    // default
+    Secure:     true,
+    HTTPOnly:   true,              // default
+    SameSite:   http.SameSiteLaxMode, // default
+    Path:       "/",               // default
+}))
+```
+
+## Using Sessions
+
+Retrieve the session from any handler using `GetSession`:
+
+```go
+func (c *Controller) login(ctx gonest.Context) error {
+    session := gonest.GetSession(ctx)
+
+    // Set a value
+    session.SetValue("user_id", 42)
+    session.SetValue("role", "admin")
+
+    return ctx.JSON(http.StatusOK, map[string]string{"status": "logged in"})
+}
+
+func (c *Controller) profile(ctx gonest.Context) error {
+    session := gonest.GetSession(ctx)
+
+    // Get a value
+    userID, ok := session.GetValue("user_id")
+    if !ok {
+        return gonest.NewUnauthorizedException("not logged in")
+    }
+
+    return ctx.JSON(http.StatusOK, map[string]any{"user_id": userID})
+}
+
+func (c *Controller) logout(ctx gonest.Context) error {
+    session := gonest.GetSession(ctx)
+
+    // Delete a value
+    session.Delete("user_id")
+    session.Delete("role")
+
+    return ctx.JSON(http.StatusOK, map[string]string{"status": "logged out"})
+}
+```
+
+## Session API
+
+| Method | Description |
+|---|---|
+| `GetValue(key)` | Retrieve a value by key. Returns `(value, bool)` |
+| `SetValue(key, value)` | Store a value in the session |
+| `Delete(key)` | Remove a key from the session |
+
+Session fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `ID` | `string` | Unique session identifier |
+| `Data` | `map[string]any` | Session data store |
+| `CreatedAt` | `time.Time` | When the session was created |
+| `ExpiresAt` | `time.Time` | When the session expires |
+
+## SessionOptions
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `Store` | `SessionStore` | (required) | Session storage backend |
+| `CookieName` | `string` | `"gonest.sid"` | Name of the session cookie |
+| `MaxAge` | `time.Duration` | `24h` | Session lifetime |
+| `Secure` | `bool` | `false` | HTTPS-only cookie |
+| `HTTPOnly` | `bool` | `true` | Prevent JavaScript access |
+| `SameSite` | `http.SameSite` | `Lax` | SameSite cookie policy |
+| `Path` | `string` | `"/"` | Cookie path |
+
+## Memory Store
+
+The built-in `MemorySessionStore` stores sessions in memory with automatic cleanup of expired sessions every 5 minutes:
+
+```go
+store := gonest.NewMemorySessionStore(30 * time.Minute)
+```
+
+## Custom Store
+
+Implement `SessionStore` for production backends like Redis or a database:
+
+```go
+type SessionStore interface {
+    Get(sessionID string) (*Session, error)
+    Save(session *Session) error
+    Destroy(sessionID string) error
+}
+```
+
+Example Redis store:
+
+```go
+type RedisSessionStore struct {
+    client *redis.Client
+    maxAge time.Duration
+}
+
+func (s *RedisSessionStore) Get(sessionID string) (*gonest.Session, error) {
+    data, err := s.client.Get(ctx, "session:"+sessionID).Bytes()
+    if err != nil {
+        return nil, nil // not found
+    }
+    var sess gonest.Session
+    json.Unmarshal(data, &sess)
+    return &sess, nil
+}
+
+func (s *RedisSessionStore) Save(session *gonest.Session) error {
+    data, _ := json.Marshal(session)
+    return s.client.Set(ctx, "session:"+session.ID, data, s.maxAge).Err()
+}
+
+func (s *RedisSessionStore) Destroy(sessionID string) error {
+    return s.client.Del(ctx, "session:"+sessionID).Err()
+}
+```

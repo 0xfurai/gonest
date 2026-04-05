@@ -1,0 +1,64 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: File Upload
+---
+
+# File Upload
+
+GoNest handles multipart file uploads using the `FileInterceptor`.
+
+## Basic Upload
+
+```go
+func (c *FilesController) Register(r gonest.Router) {
+    r.Post("/upload", c.upload).
+        Interceptors(gonest.NewFileInterceptor("file", 5<<20)) // 5MB max
+}
+
+func (c *FilesController) upload(ctx gonest.Context) error {
+    file := gonest.GetUploadedFile(ctx, "file")
+    if file == nil {
+        return gonest.NewBadRequestException("file is required")
+    }
+
+    // file.Filename, file.Size, file.MimeType
+    data, _ := gonest.ReadFileBytes(file)
+    // ... save data
+    return ctx.JSON(201, map[string]string{"filename": file.Filename})
+}
+```
+
+## Validation
+
+```go
+// Type validation
+validator := &gonest.FileTypeValidator{
+    AllowedTypes: []string{".jpg", ".png", ".pdf"},
+}
+if err := validator.Validate(file); err != nil {
+    return err
+}
+
+// Size validation
+sizeValidator := &gonest.FileSizeValidator{MaxSize: 2 << 20} // 2MB
+if err := sizeValidator.Validate(file); err != nil {
+    return err
+}
+```
+
+## UploadedFile Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Filename` | `string` | Original filename |
+| `Size` | `int64` | File size in bytes |
+| `MimeType` | `string` | Content type |
+| `File` | `multipart.File` | File reader |
+| `Header` | `*multipart.FileHeader` | Full header |
+
+## Client Usage
+
+```bash
+curl -X POST http://localhost:3000/api/files/upload \
+  -F "file=@photo.jpg"
+```

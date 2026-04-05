@@ -1,0 +1,67 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: WebSockets
+---
+
+# WebSockets
+
+GoNest provides a gateway pattern for WebSocket communication.
+
+## Gateway
+
+```go
+import "github.com/gonest/websocket"
+
+type ChatGateway struct {
+    server *websocket.Server
+}
+
+func (g *ChatGateway) Handlers() map[string]websocket.MessageHandler {
+    return map[string]websocket.MessageHandler{
+        "message": func(client *websocket.Client, data json.RawMessage) (any, error) {
+            var msg string
+            json.Unmarshal(data, &msg)
+            g.server.Broadcast("message", map[string]any{
+                "from": client.ID,
+                "text": msg,
+            })
+            return nil, nil
+        },
+    }
+}
+
+func (g *ChatGateway) OnConnection(client *websocket.Client) {
+    log.Printf("Client %s connected", client.ID)
+}
+
+func (g *ChatGateway) OnDisconnect(client *websocket.Client) {
+    log.Printf("Client %s disconnected", client.ID)
+}
+```
+
+## Module Setup
+
+```go
+wsModule := websocket.NewModule(websocket.GatewayOptions{
+    Path:     "/ws",
+    Gateway:  &ChatGateway{},
+    Upgrader: myUpgrader, // gorilla/websocket upgrader
+})
+```
+
+## Client Messages
+
+Messages are JSON with `event` and `data` fields:
+
+```json
+{"event": "message", "data": "Hello everyone!"}
+```
+
+## Server API
+
+| Method | Description |
+|--------|-------------|
+| `server.Broadcast(event, data)` | Send to all clients |
+| `client.Send(event, data)` | Send to one client |
+| `client.Close()` | Disconnect client |
+| `server.ClientCount()` | Connected count |

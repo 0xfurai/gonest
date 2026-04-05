@@ -1,0 +1,67 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Health Checks
+---
+
+# Health Checks
+
+The `health` module exposes a `/health` endpoint for load balancers and monitoring.
+
+## Setup
+
+```go
+import "github.com/gonest/health"
+
+healthModule := health.NewModule(health.Options{
+    Indicators: []health.HealthIndicator{
+        &health.PingIndicator{},
+        &health.CustomIndicator{
+            IndicatorName: "database",
+            CheckFn: func() health.HealthResult {
+                if err := db.Ping(); err != nil {
+                    return health.HealthResult{Status: health.StatusDown,
+                        Details: map[string]any{"error": err.Error()}}
+                }
+                return health.HealthResult{Status: health.StatusUp,
+                    Details: map[string]any{"latency": "5ms"}}
+            },
+        },
+    },
+})
+```
+
+## Response
+
+**All healthy** (200):
+```json
+{
+  "status": "up",
+  "info":    {"ping": {"status": "up"}, "database": {"status": "up"}},
+  "error":   {},
+  "details": {"ping": {"status": "up"}, "database": {"status": "up", "details": {"latency": "5ms"}}}
+}
+```
+
+**One unhealthy** (503):
+```json
+{
+  "status": "down",
+  "info":    {"ping": {"status": "up"}},
+  "error":   {"database": {"status": "down", "details": {"error": "connection refused"}}},
+  "details": {...}
+}
+```
+
+## Custom Indicators
+
+```go
+type RedisIndicator struct{ client *redis.Client }
+
+func (r *RedisIndicator) Name() string { return "redis" }
+func (r *RedisIndicator) Check() health.HealthResult {
+    if err := r.client.Ping(ctx).Err(); err != nil {
+        return health.HealthResult{Status: health.StatusDown}
+    }
+    return health.HealthResult{Status: health.StatusUp}
+}
+```

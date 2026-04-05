@@ -1,0 +1,81 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: CORS
+---
+
+# CORS
+
+Cross-Origin Resource Sharing (CORS) allows your API to accept requests from different origins. GoNest provides built-in CORS support via `EnableCors`.
+
+## Basic Usage
+
+Enable CORS with default settings (allow all origins):
+
+```go
+app := gonest.Create(AppModule)
+app.EnableCors()
+app.Listen(":3000")
+```
+
+## Configuration
+
+Pass `CorsOptions` to customize CORS behavior:
+
+```go
+app.EnableCors(gonest.CorsOptions{
+    Origin:      "https://example.com",
+    Methods:     "GET, POST, PUT, DELETE",
+    Headers:     "Content-Type, Authorization, X-Custom-Header",
+    Credentials: true,
+})
+```
+
+### CorsOptions
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `Origin` | `string` | `"*"` | Allowed origin(s) |
+| `Methods` | `string` | `"GET, POST, PUT, DELETE, PATCH, OPTIONS"` | Allowed HTTP methods |
+| `Headers` | `string` | `"Content-Type, Authorization"` | Allowed request headers |
+| `Credentials` | `bool` | `false` | Allow credentials (cookies, auth headers) |
+
+## How It Works
+
+`EnableCors` registers a middleware on the HTTP adapter that:
+
+1. Sets `Access-Control-Allow-Origin` on every response
+2. Sets `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers`
+3. Sets `Access-Control-Allow-Credentials` when enabled
+4. Responds to preflight `OPTIONS` requests with `204 No Content`
+
+## Multiple Origins
+
+For multiple allowed origins, implement a custom CORS middleware:
+
+```go
+type DynamicCorsMiddleware struct {
+    allowed map[string]bool
+}
+
+func (m *DynamicCorsMiddleware) Use(ctx gonest.Context, next gonest.NextFunc) error {
+    origin := ctx.Header("Origin")
+    if m.allowed[origin] {
+        ctx.SetHeader("Access-Control-Allow-Origin", origin)
+        ctx.SetHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+        ctx.SetHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        ctx.SetHeader("Access-Control-Allow-Credentials", "true")
+        ctx.SetHeader("Vary", "Origin")
+    }
+    if ctx.Method() == "OPTIONS" {
+        return ctx.NoContent(http.StatusNoContent)
+    }
+    return next()
+}
+
+app.UseGlobalMiddleware(&DynamicCorsMiddleware{
+    allowed: map[string]bool{
+        "https://app.example.com":   true,
+        "https://admin.example.com": true,
+    },
+})
+```

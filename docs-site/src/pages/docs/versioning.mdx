@@ -1,0 +1,75 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: API Versioning
+---
+
+# API Versioning
+
+GoNest supports three versioning strategies: URI, header, and media type.
+
+## URI Versioning
+
+Version in the URL path: `/v1/cats`, `/v2/cats`.
+
+```go
+app.UseGlobalMiddleware(gonest.NewVersioningMiddleware(gonest.VersioningOptions{
+    Type:           gonest.VersioningURI,
+    DefaultVersion: "1",
+}))
+```
+
+Create separate controllers per version:
+
+```go
+type CatsV1Controller struct{}
+func (c *CatsV1Controller) Register(r gonest.Router) {
+    r.Prefix("/v1/cats")
+    r.Get("/", c.findAll)
+}
+
+type CatsV2Controller struct{}
+func (c *CatsV2Controller) Register(r gonest.Router) {
+    r.Prefix("/v2/cats")
+    r.Get("/", c.findAll)  // new response format
+}
+```
+
+## Header Versioning
+
+```go
+app.UseGlobalMiddleware(gonest.NewVersioningMiddleware(gonest.VersioningOptions{
+    Type:   gonest.VersioningHeader,
+    Header: "X-API-Version",  // default
+}))
+```
+
+Client sends: `X-API-Version: 2`
+
+## Media Type Versioning
+
+```go
+app.UseGlobalMiddleware(gonest.NewVersioningMiddleware(gonest.VersioningOptions{
+    Type: gonest.VersioningMediaType,
+}))
+```
+
+Client sends: `Accept: application/json;v=2`
+
+## Version Guard
+
+Restrict routes to specific versions:
+
+```go
+r.Get("/cats", c.findAll).
+    SetMetadata("version", "2").
+    Guards(gonest.NewVersionGuard())
+```
+
+## Reading the Version
+
+```go
+func (c *Controller) handler(ctx gonest.Context) error {
+    version := gonest.GetVersion(ctx)
+    // ... respond based on version
+}
+```

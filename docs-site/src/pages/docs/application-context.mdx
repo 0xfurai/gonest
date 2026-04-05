@@ -1,0 +1,188 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Application Context & REPL
+---
+
+# Application Context & REPL
+
+GoNest supports **non-HTTP application contexts** for CLI tools, workers, cron jobs, and microservice-only applications. It also provides an interactive **REPL** for debugging.
+
+## ApplicationContext
+
+`ApplicationContext` bootstraps the DI container and module tree **without starting an HTTP server**. Equivalent to NestJS `NestFactory.createApplicationContext()`.
+
+```go
+ctx, err := gonest.CreateApplicationContext(AppModule)
+if err != nil {
+    log.Fatal(err)
+}
+defer ctx.Close()
+
+// Resolve any provider from the container
+container := ctx.GetContainer()
+svc, _ := gonest.Resolve[*EmailService](container)
+svc.SendBatchEmails()
+```
+
+### Use Cases
+
+- **CLI tools** -- resolve services and run commands without HTTP overhead
+- **Workers** -- background job processors that share the same module/DI setup
+- **Cron jobs** -- scheduled tasks that use application services
+- **Testing** -- compile and inspect the module graph without a running server
+- **Migrations** -- database migration scripts with access to the DI container
+
+### API
+
+| Method | Description |
+|---|---|
+| `CreateApplicationContext(module, opts...)` | Bootstrap DI without HTTP |
+| `ctx.GetContainer()` | Access the root DI container |
+| `ctx.Resolve(type)` | Resolve a provider by `reflect.Type` |
+| `ctx.GetDiscoveryService()` | Runtime provider/controller discovery |
+| `ctx.GetGraphInspector()` | Dependency graph analysis |
+| `ctx.Close()` | Run shutdown hooks and tear down |
+
+### Example: CLI Tool
+
+```go
+func main() {
+    ctx, err := gonest.CreateApplicationContext(AppModule)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer ctx.Close()
+
+    migrator, _ := gonest.Resolve[*MigrationService](ctx.GetContainer())
+
+    switch os.Args[1] {
+    case "migrate":
+        migrator.Up()
+    case "rollback":
+        migrator.Down()
+    case "seed":
+        seeder, _ := gonest.Resolve[*SeederService](ctx.GetContainer())
+        seeder.Run()
+    }
+}
+```
+
+---
+
+## MicroserviceApp
+
+`MicroserviceApp` combines `ApplicationContext` with a microservice transport server. Equivalent to NestJS `NestFactory.createMicroservice()`.
+
+```go
+app, err := gonest.CreateMicroservice(AppModule, gonest.MicroserviceOptions{
+    Server: tcpServer,
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Start with graceful shutdown
+app.ListenWithGracefulShutdown()
+```
+
+### API
+
+| Method | Description |
+|---|---|
+| `CreateMicroservice(module, opts)` | Bootstrap microservice app |
+| `app.Listen()` | Start the transport server |
+| `app.ListenWithGracefulShutdown()` | Start with OS signal handling |
+| `app.GetServer()` | Access the underlying transport server |
+| `app.Close()` | Stop server and run shutdown hooks |
+
+---
+
+## REPL
+
+The interactive **REPL** (Read-Eval-Print Loop) lets you inspect a running application from the terminal. Equivalent to NestJS REPL.
+
+### Starting the REPL
+
+```go
+// For HTTP applications
+app := gonest.Create(AppModule)
+app.Init()
+
+repl := gonest.NewREPL(app)
+repl.Start()
+```
+
+```go
+// For application contexts
+ctx, _ := gonest.CreateApplicationContext(AppModule)
+
+repl := gonest.NewREPLFromContext(ctx)
+repl.Start()
+```
+
+### Available Commands
+
+| Command | Description |
+|---|---|
+| `help` | Show available commands |
+| `modules` / `ls` | List all modules with provider and controller counts |
+| `providers` | List all registered provider types |
+| `controllers` | List all controllers |
+| `routes` | List all registered HTTP routes (HTTP apps only) |
+| `resolve <Type>` | Resolve a provider by type name |
+| `methods <Type>` | List methods on a provider type |
+| `debug` | Show the dependency graph summary |
+| `exit` / `quit` | Exit the REPL |
+
+### Example Session
+
+```
+GoNest REPL -- type 'help' for available commands, 'exit' to quit
+> modules
+Modules (3):
+  [0] providers=5 controllers=2 global=false
+  [1] providers=2 controllers=0 global=true
+  [2] providers=1 controllers=1 global=false
+> providers
+Providers (8):
+  - *config.ConfigService
+  - *main.CatsService
+  - *main.UsersService
+  - *gonest.DiscoveryService
+  - *gonest.GraphInspector
+> routes
+Routes (6):
+  GET /cats
+  POST /cats
+  GET /cats/:id
+  GET /users
+  POST /users
+  GET /health
+> resolve CatsService
+Resolved *main.CatsService: *main.CatsService
+> methods CatsService
+Methods on *main.CatsService (4):
+  - Create(main.CreateCatDto) (main.Cat)
+  - FindAll() ([]main.Cat)
+  - FindOne(int) (*main.Cat)
+  - Delete(int) (bool)
+> debug
+Dependency edges (3):
+  *main.CatsController -> *main.CatsService
+  *main.UsersController -> *main.UsersService
+  *main.UsersService -> *config.ConfigService
+> exit
+Bye!
+```
+
+### Custom I/O
+
+Override stdin/stdout for testing or remote access:
+
+```go
+repl := gonest.NewREPL(app)
+repl.SetIO(customReader, customWriter)
+repl.Start()
+```
+
+See `example/25-context` for a complete working example.

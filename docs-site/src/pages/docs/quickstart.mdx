@@ -1,0 +1,123 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Quick Start
+---
+
+# Quick Start
+
+Build a working REST API in under 5 minutes.
+
+## Installation
+
+```bash
+go get github.com/gonest
+```
+
+## Create Your First Application
+
+```go
+package main
+
+import (
+    "log"
+    "net/http"
+
+    "github.com/gonest"
+)
+
+// Service — encapsulates business logic
+type CatsService struct {
+    cats []map[string]any
+}
+
+func NewCatsService() *CatsService {
+    return &CatsService{
+        cats: []map[string]any{
+            {"id": 1, "name": "Pixel", "breed": "Bombay"},
+        },
+    }
+}
+
+func (s *CatsService) FindAll() []map[string]any { return s.cats }
+
+func (s *CatsService) Create(cat map[string]any) map[string]any {
+    cat["id"] = len(s.cats) + 1
+    s.cats = append(s.cats, cat)
+    return cat
+}
+
+// Controller — handles HTTP routes
+type CatsController struct {
+    service *CatsService
+}
+
+func NewCatsController(service *CatsService) *CatsController {
+    return &CatsController{service: service}
+}
+
+func (c *CatsController) Register(r gonest.Router) {
+    r.Prefix("/cats")
+    r.Get("/", c.findAll)
+    r.Post("/", c.create)
+}
+
+func (c *CatsController) findAll(ctx gonest.Context) error {
+    return ctx.JSON(http.StatusOK, c.service.FindAll())
+}
+
+func (c *CatsController) create(ctx gonest.Context) error {
+    var body map[string]any
+    if err := ctx.Bind(&body); err != nil {
+        return err
+    }
+    cat := c.service.Create(body)
+    return ctx.JSON(http.StatusCreated, cat)
+}
+
+// Module — wires controllers and providers
+var AppModule = gonest.NewModule(gonest.ModuleOptions{
+    Controllers: []any{NewCatsController},
+    Providers:   []any{NewCatsService},
+})
+
+// Bootstrap
+func main() {
+    app := gonest.Create(AppModule)
+    log.Fatal(app.Listen(":3000"))
+}
+```
+
+## Run It
+
+```bash
+go run main.go
+```
+
+## Test It
+
+```bash
+# List cats
+curl http://localhost:3000/cats
+
+# Create a cat
+curl -X POST http://localhost:3000/cats \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Luna","breed":"Siamese"}'
+```
+
+## What Just Happened?
+
+1. `NewCatsService` is a **provider** — the DI container creates it automatically
+2. `NewCatsController` depends on `*CatsService` — the container injects it via the constructor parameter
+3. `Register(Router)` defines **routes** — GoNest maps them to the HTTP adapter
+4. `gonest.Create(AppModule)` compiles the module tree, resolves all dependencies, and registers routes
+5. `app.Listen(":3000")` starts the HTTP server
+
+## Next Steps
+
+Add features to your app:
+
+- [Guards](/docs/guards) for authentication
+- [Pipes](/docs/pipes) for input validation
+- [Interceptors](/docs/interceptors) for logging and caching
+- [Swagger](/docs/swagger) for API documentation

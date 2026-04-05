@@ -1,0 +1,48 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Scheduling
+---
+
+# Scheduling
+
+The `schedule` module provides cron jobs, intervals, and one-time timeouts.
+
+```go
+import "github.com/gonest/schedule"
+
+scheduler := schedule.NewScheduler()
+
+// Every 10 seconds
+scheduler.AddInterval("heartbeat", 10*time.Second, func() {
+    log.Println("heartbeat")
+})
+
+// Once after 5 seconds
+scheduler.AddTimeout("init", 5*time.Second, func() {
+    log.Println("initialized")
+})
+
+// Cron expression
+scheduler.AddCron("cleanup", "0 0 * * *", func() {
+    log.Println("daily cleanup")
+})
+
+scheduler.Start()
+defer scheduler.Stop()
+```
+
+## Cron Expressions
+
+| Expression | Schedule |
+|-----------|----------|
+| `* * * * *` | Every minute |
+| `*/5 * * * *` | Every 5 minutes |
+| `0 * * * *` | Every hour |
+| `0 0 * * *` | Daily at midnight |
+
+## Stopping Jobs
+
+```go
+scheduler.StopJob("heartbeat")  // Stop one job
+scheduler.Stop()                 // Stop all jobs
+```

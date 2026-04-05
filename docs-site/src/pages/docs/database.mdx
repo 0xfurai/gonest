@@ -1,0 +1,165 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Database
+---
+
+# Database
+
+GoNest provides a generic SQL database module that works with any `database/sql` compatible driver, plus a MongoDB module. Connection pooling, health checks, transactions, and migrations are included.
+
+## SQL Database (PostgreSQL, MySQL, SQLite, SQL Server)
+
+```go
+import dbsql "github.com/gonest/database/sql"
+```
+
+### PostgreSQL
+
+```go
+dbModule := dbsql.NewModule(dbsql.Options{
+    Driver:   dbsql.DriverPostgres,
+    Host:     "localhost",
+    Port:     5432,
+    User:     "myuser",
+    Password: "mypass",
+    Database: "mydb",
+    SSLMode:  "disable",
+})
+```
+
+Requires: `import _ "github.com/lib/pq"` or `import _ "github.com/jackc/pgx/v5/stdlib"`
+
+### MySQL
+
+```go
+dbModule := dbsql.NewModule(dbsql.Options{
+    Driver:   dbsql.DriverMySQL,
+    Host:     "localhost",
+    Port:     3306,
+    User:     "root",
+    Password: "secret",
+    Database: "myapp",
+})
+```
+
+Requires: `import _ "github.com/go-sql-driver/mysql"`
+
+### SQLite
+
+```go
+dbModule := dbsql.NewModule(dbsql.Options{
+    Driver:   dbsql.DriverSQLite,
+    Database: "./data.db",             // or ":memory:" for in-memory
+    Params:   map[string]string{"_journal_mode": "WAL"},
+})
+```
+
+Requires: `import _ "modernc.org/sqlite"`
+
+### SQL Server
+
+```go
+dbModule := dbsql.NewModule(dbsql.Options{
+    Driver:   dbsql.DriverSQLServer,
+    Host:     "localhost",
+    User:     "sa",
+    Password: "pass",
+    Database: "master",
+})
+```
+
+### From a Raw DSN
+
+```go
+dbModule := dbsql.NewModuleFromDSN(dbsql.DriverPostgres,
+    "postgres://user:pass@host:5432/db?sslmode=require")
+```
+
+### Connection Pool Settings
+
+```go
+dbModule := dbsql.NewModule(dbsql.Options{
+    Driver:          dbsql.DriverPostgres,
+    // ...
+    MaxOpenConns:    25,
+    MaxIdleConns:    5,
+    ConnMaxLifetime: 5 * time.Minute,
+    ConnMaxIdleTime: 1 * time.Minute,
+})
+```
+
+### Transactions
+
+```go
+dbsql.Transaction(db, func(tx *sql.Tx) error {
+    _, err := tx.Exec("INSERT INTO users (name) VALUES ($1)", "Alice")
+    if err != nil {
+        return err // auto-rollback
+    }
+    _, err = tx.Exec("INSERT INTO audit_log (action) VALUES ($1)", "user_created")
+    return err // auto-commit on nil
+})
+```
+
+### Migrations
+
+```go
+dbsql.Migrate(db, []string{
+    `CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
+})
+```
+
+### Health Check
+
+```go
+checker := dbsql.NewHealthChecker(db, "postgres")
+// Returns: {"status": "up", "openConns": 5, "inUse": 2, "idle": 3}
+```
+
+## MongoDB
+
+```go
+import "github.com/gonest/database/mongo"
+
+mongoModule := mongo.NewModule(mongo.Options{
+    URI:      "mongodb://localhost:27017",
+    Database: "mydb",
+})
+```
+
+Provides `*mongo.Connection` with URI and database name.
+
+## Repository Pattern
+
+The `database` package defines a generic `Repository[T]` interface:
+
+```go
+import "github.com/gonest/database"
+
+type Repository[T any] interface {
+    FindAll(ctx context.Context) ([]T, error)
+    FindByID(ctx context.Context, id any) (*T, error)
+    Create(ctx context.Context, entity *T) error
+    Update(ctx context.Context, entity *T) error
+    Delete(ctx context.Context, id any) error
+    Count(ctx context.Context) (int64, error)
+}
+```
+
+Implement this with your ORM of choice (GORM, sqlx, ent, Bun, sqlc).
+
+## Pagination Helper
+
+```go
+import "github.com/gonest/database"
+
+items := fetchAllUsers() // []User
+result := database.Paginate(items, page, limit)
+// result.Items, result.TotalCount, result.Page, result.Limit
+```

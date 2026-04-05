@@ -1,0 +1,49 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Server-Sent Events
+---
+
+# Server-Sent Events
+
+GoNest provides built-in SSE support for real-time server-to-client streaming.
+
+## SSE Endpoint
+
+```go
+func (c *Controller) Register(r gonest.Router) {
+    r.Get("/events", gonest.SSE(func(stream *gonest.SSEStream) {
+        ticker := time.NewTicker(time.Second)
+        defer ticker.Stop()
+
+        for i := 0; i < 100; i++ {
+            <-ticker.C
+            stream.Send(gonest.SSEEvent{
+                ID:    fmt.Sprintf("%d", i),
+                Event: "update",
+                Data:  map[string]any{"count": i, "time": time.Now()},
+            })
+        }
+        stream.Close()
+    }))
+}
+```
+
+## SSEEvent Fields
+
+| Field | Description |
+|-------|-------------|
+| `ID` | Event ID (for reconnection) |
+| `Event` | Event type (client listens with `addEventListener`) |
+| `Data` | Payload (auto-serialized to JSON) |
+
+## Client (JavaScript)
+
+```javascript
+const source = new EventSource('/events');
+source.addEventListener('update', (e) => {
+    const data = JSON.parse(e.data);
+    console.log(data.count);
+});
+```
+
+The stream automatically closes when the client disconnects.

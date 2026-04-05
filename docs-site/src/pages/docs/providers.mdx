@@ -1,0 +1,117 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Providers & Dependency Injection
+---
+
+# Providers & Dependency Injection
+
+Providers are the core of GoNest's DI system. Any constructor function registered in a module's `Providers` array can be automatically resolved and injected.
+
+## Constructor Injection
+
+The DI container inspects constructor function parameters via reflection:
+
+```go
+// CatsService has no dependencies
+func NewCatsService() *CatsService {
+    return &CatsService{}
+}
+
+// CatsController depends on CatsService — injected automatically
+func NewCatsController(service *CatsService) *CatsController {
+    return &CatsController{service: service}
+}
+```
+
+Register both in the module:
+
+```go
+var CatsModule = gonest.NewModule(gonest.ModuleOptions{
+    Controllers: []any{NewCatsController},
+    Providers:   []any{NewCatsService},
+})
+```
+
+## Provider Types
+
+### Constructor Provider (default)
+
+```go
+gonest.Provide(NewCatsService)
+```
+
+### Value Provider
+
+```go
+gonest.ProvideValue[*Config](myConfig)
+```
+
+### Factory Provider
+
+```go
+gonest.ProvideFactory[*sql.DB](func(config *Config) (*sql.DB, error) {
+    return sql.Open("postgres", config.DatabaseURL)
+})
+```
+
+### Interface Binding
+
+```go
+gonest.Bind[Repository](NewPostgresRepository)
+// Now injecting Repository interface resolves to *PostgresRepository
+```
+
+### Token Provider
+
+```go
+gonest.ProvideTokenValue("JWT_SECRET", "my-secret-key")
+// Resolve via: container.ResolveByToken("JWT_SECRET")
+```
+
+## Scopes
+
+```go
+// Singleton (default) — one instance for the entire app
+gonest.Provide(NewCatsService)
+
+// Transient — new instance every time it's injected
+gonest.ProvideWithScope(NewCatsService, gonest.ScopeTransient)
+
+// Request — new instance per HTTP request
+gonest.ProvideWithScope(NewRequestLogger, gonest.ScopeRequest)
+```
+
+## Resolving from Container
+
+```go
+// Generic resolve
+svc, err := gonest.Resolve[*CatsService](container)
+
+// Must resolve (panics on error)
+svc := gonest.MustResolve[*CatsService](container)
+
+// From application
+app.GetContainer()
+```
+
+## Lifecycle Hooks
+
+Providers can implement lifecycle interfaces:
+
+```go
+func (s *DatabaseService) OnModuleInit() error {
+    return s.connect()
+}
+
+func (s *DatabaseService) OnModuleDestroy() error {
+    return s.disconnect()
+}
+
+func (s *CacheService) OnApplicationBootstrap() error {
+    return s.warmup()
+}
+
+func (s *CleanupService) OnApplicationShutdown(signal string) error {
+    return s.cleanup()
+}
+```

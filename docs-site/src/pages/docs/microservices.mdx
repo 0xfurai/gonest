@@ -1,0 +1,67 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Microservices
+---
+
+# Microservices
+
+GoNest supports microservice communication via message patterns. The TCP transport is fully implemented; gRPC, NATS, Redis, and Kafka transports provide configuration stubs.
+
+## TCP Server
+
+```go
+import (
+    "github.com/gonest/microservice"
+    "github.com/gonest/microservice/tcp"
+)
+
+server := tcp.NewServer(microservice.ServerOptions{Host: "0.0.0.0", Port: 4000})
+
+server.AddMessageHandler(microservice.Pattern{Cmd: "sum"}, func(ctx *microservice.MessageContext) (any, error) {
+    var nums []int
+    json.Unmarshal(ctx.Data, &nums)
+    sum := 0
+    for _, n := range nums { sum += n }
+    return sum, nil
+})
+
+server.Listen()
+defer server.Close()
+```
+
+## TCP Client
+
+```go
+client := tcp.NewClient(microservice.ClientOptions{Host: "localhost", Port: 4000})
+client.Connect()
+defer client.Close()
+
+// Request/response
+resp, _ := client.Send(ctx, microservice.Pattern{Cmd: "sum"}, []int{1, 2, 3})
+
+// Fire and forget
+client.Emit(ctx, microservice.Pattern{Cmd: "log"}, "event data")
+```
+
+## Hybrid Mode
+
+Run HTTP + microservice in the same process:
+
+```go
+// Start microservice in background
+go server.Listen()
+
+// Start HTTP gateway
+app := gonest.Create(AppModule)
+app.Listen(":3000")
+```
+
+## Transport Options
+
+| Transport | Package | Status |
+|-----------|---------|--------|
+| TCP | `microservice/tcp` | Full implementation |
+| gRPC | `microservice/grpc` | Configuration stub |
+| NATS | `microservice/nats` | Configuration stub |
+| Redis | `microservice/redis` | Configuration stub |
+| Kafka | `microservice/kafka` | Configuration stub |

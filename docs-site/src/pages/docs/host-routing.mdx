@@ -1,0 +1,88 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Host / Subdomain Routing
+---
+
+# Host / Subdomain Routing
+
+GoNest supports **host-based routing** to bind controllers to specific hostnames or subdomains. This enables multi-tenant applications where routes are dispatched based on the `Host` header. Equivalent to NestJS `@Controller({ host })`.
+
+## Defining a Host Controller
+
+Implement the `HostController` interface by adding a `Host()` method to your controller:
+
+```go
+type TenantController struct {
+    service *TenantService
+}
+
+func NewTenantController(service *TenantService) *TenantController {
+    return &TenantController{service: service}
+}
+
+// Host returns the host pattern. Segments prefixed with ":" are parameters.
+func (c *TenantController) Host() string {
+    return ":tenant.example.com"
+}
+
+func (c *TenantController) Register(r gonest.Router) {
+    r.Get("/", c.dashboard)
+    r.Get("/settings", c.settings)
+}
+
+func (c *TenantController) dashboard(ctx gonest.Context) error {
+    tenant := gonest.HostParam(ctx, "tenant")
+    data := c.service.GetDashboard(tenant)
+    return ctx.JSON(http.StatusOK, data)
+}
+
+func (c *TenantController) settings(ctx gonest.Context) error {
+    tenant := gonest.HostParam(ctx, "tenant")
+    return ctx.JSON(http.StatusOK, map[string]string{"tenant": tenant})
+}
+```
+
+When a request arrives for `acme.example.com/`, the `tenant` parameter is extracted as `"acme"`.
+
+## Extracting Host Parameters
+
+| Function | Description |
+|---|---|
+| `HostParam(ctx, name)` | Get a single host parameter by name |
+| `GetHostParams(ctx)` | Get all host parameters as `map[string]string` |
+
+```go
+func (c *Controller) handler(ctx gonest.Context) error {
+    // Single parameter
+    tenant := gonest.HostParam(ctx, "tenant")
+
+    // All parameters
+    params := gonest.GetHostParams(ctx)
+    // e.g., {"tenant": "acme", "region": "us"}
+}
+```
+
+## Host Pattern Syntax
+
+The pattern is matched segment-by-segment against the request host (port stripped):
+
+| Pattern | Matches | Parameters |
+|---|---|---|
+| `:tenant.example.com` | `acme.example.com` | `tenant=acme` |
+| `:sub.:domain.com` | `api.myapp.com` | `sub=api, domain=myapp` |
+| `admin.example.com` | `admin.example.com` (exact) | none |
+
+If the host does not match the pattern, the request returns a **404 Not Found**.
+
+## Module Registration
+
+Register host controllers like any other controller:
+
+```go
+var TenantModule = gonest.NewModule(gonest.ModuleOptions{
+    Controllers: []any{NewTenantController},
+    Providers:   []any{NewTenantService},
+})
+```
+
+You can combine host controllers with regular controllers in the same application. Regular controllers match all hosts; host controllers only match their specific pattern.

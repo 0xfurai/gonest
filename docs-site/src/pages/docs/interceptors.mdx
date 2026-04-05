@@ -1,0 +1,75 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Interceptors
+---
+
+# Interceptors
+
+Interceptors wrap handler execution, enabling logic **before and after** the route handler runs. Use them for logging, caching, response transformation, and error handling.
+
+## Implementing an Interceptor
+
+```go
+type LoggingInterceptor struct {
+    logger gonest.Logger
+}
+
+func (i *LoggingInterceptor) Intercept(
+    ctx gonest.ExecutionContext,
+    next gonest.CallHandler,
+) (any, error) {
+    start := time.Now()
+
+    result, err := next.Handle()  // execute handler
+
+    duration := time.Since(start)
+    i.logger.Log("%s %s - %v", ctx.Method(), ctx.Path(), duration)
+
+    return result, err
+}
+```
+
+## Response Transformation
+
+Wrap all responses in a standard envelope:
+
+```go
+type TransformInterceptor struct{}
+
+func (i *TransformInterceptor) Intercept(ctx gonest.ExecutionContext, next gonest.CallHandler) (any, error) {
+    result, err := next.Handle()
+    if err != nil {
+        return nil, err
+    }
+    return map[string]any{"data": result, "success": true}, nil
+}
+```
+
+## Using Interceptors
+
+```go
+// Global
+app.UseGlobalInterceptors(&LoggingInterceptor{logger: logger})
+
+// Controller-level
+r.UseInterceptors(&CacheInterceptor{})
+
+// Route-level
+r.Get("/slow", c.slow).Interceptors(&TimeoutInterceptor{})
+```
+
+## Built-in Interceptors
+
+- **`SerializerInterceptor`** — Exclude/expose fields based on struct tags
+- **`CacheInterceptor`** — Cache GET responses with TTL
+- **`FileInterceptor`** — Extract uploaded files from multipart requests
+- **`BroadcastInterceptor`** — Broadcast results to WebSocket clients
+
+## InterceptorFunc Shorthand
+
+```go
+interceptor := gonest.InterceptorFunc(func(ctx gonest.ExecutionContext, next gonest.CallHandler) (any, error) {
+    ctx.SetHeader("X-Powered-By", "GoNest")
+    return next.Handle()
+})
+```

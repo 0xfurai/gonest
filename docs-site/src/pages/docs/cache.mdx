@@ -1,0 +1,51 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Cache
+---
+
+# Cache
+
+The `cache` module provides in-memory caching with TTL and a `CacheInterceptor` for automatic GET response caching.
+
+## Setup
+
+```go
+import "github.com/gonest/cache"
+
+cacheModule := cache.NewModule(cache.Options{
+    TTL: 30 * time.Second,
+})
+```
+
+## Auto-Cache GET Responses
+
+```go
+r.UseInterceptors(cache.NewCacheInterceptor(store, 10*time.Second))
+```
+
+Only `GET` requests are cached. Cache key = `path + query string`.
+
+## Manual Cache Usage
+
+```go
+store := cache.NewMemoryStore()
+
+store.Set("key", value, 5*time.Minute)   // with TTL
+store.Set("key", value, 0)               // no expiration
+value, ok := store.Get("key")
+store.Delete("key")
+store.Clear()
+```
+
+## Cache Store Interface
+
+Implement for Redis, Memcached, etc:
+
+```go
+type Store interface {
+    Get(key string) (any, bool)
+    Set(key string, value any, ttl time.Duration)
+    Delete(key string)
+    Clear()
+}
+```

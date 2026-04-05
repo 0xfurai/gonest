@@ -1,0 +1,54 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Events
+---
+
+# Event Emitter
+
+GoNest includes a lightweight pub/sub event system for decoupling components.
+
+## Setup
+
+```go
+emitter := gonest.NewEventEmitter()
+
+// Register as a provider
+gonest.ProvideValue[*gonest.EventEmitter](emitter)
+```
+
+## Listening
+
+```go
+emitter.On("order.created", func(data any) error {
+    order := data.(*Order)
+    log.Printf("New order: %d", order.ID)
+    return sendConfirmationEmail(order)
+})
+```
+
+## Emitting
+
+```go
+func (s *OrdersService) Create(dto CreateOrderDto) (*Order, error) {
+    order := // ... create order
+    s.emitter.Emit("order.created", order)
+    return order, nil
+}
+```
+
+## Async Events
+
+```go
+// Fire and forget — handlers run in goroutines
+s.emitter.EmitAsync("analytics.pageview", pageData)
+```
+
+## API
+
+| Method | Description |
+|--------|-------------|
+| `On(event, handler)` | Register handler |
+| `Emit(event, data)` | Synchronous emit |
+| `EmitAsync(event, data)` | Async emit (goroutines) |
+| `RemoveAll(event)` | Remove all handlers |
+| `ListenerCount(event)` | Count handlers |

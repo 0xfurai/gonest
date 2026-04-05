@@ -1,0 +1,37 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Rate Limiting
+---
+
+# Rate Limiting
+
+GoNest provides token-bucket based rate limiting via the `ThrottleGuard`.
+
+## Global Rate Limit
+
+```go
+// 100 requests per minute per IP
+app.UseGlobalGuards(gonest.NewThrottleGuard(100, time.Minute))
+```
+
+When exceeded, returns `429 Too Many Requests`.
+
+## Per-Route Limits
+
+Use `ThrottleByMetadataGuard` with route metadata:
+
+```go
+app.UseGlobalGuards(gonest.NewThrottleByMetadataGuard(100, time.Minute))
+
+// Expensive endpoint: 5 requests per minute
+r.Post("/export", c.export).
+    SetMetadata("throttle_limit", 5).
+    SetMetadata("throttle_window", time.Minute)
+```
+
+## How It Works
+
+- Each IP gets a token bucket with `limit` tokens
+- Each request consumes one token
+- Tokens refill when the `window` duration elapses
+- Different IPs have independent buckets

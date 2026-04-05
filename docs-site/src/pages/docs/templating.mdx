@@ -1,0 +1,138 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Templating / MVC
+---
+
+# Templating / MVC
+
+GoNest supports server-side HTML rendering using Go's `html/template`. This enables traditional MVC patterns alongside your API routes. Equivalent to NestJS view engine integration.
+
+## Setup
+
+Create a template engine and register it with the application:
+
+```go
+engine, err := gonest.NewGoTemplateEngine(gonest.GoTemplateEngineOptions{
+    Dir:       "./views",
+    Extension: ".html", // default
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+app := gonest.Create(AppModule)
+app.SetViewEngine(engine)
+```
+
+### From Embedded Files
+
+Use `embed.FS` for self-contained binaries:
+
+```go
+//go:embed views/*.html
+var viewsFS embed.FS
+
+engine, err := gonest.NewGoTemplateEngineFromFS(viewsFS, "views/*.html")
+```
+
+### Custom Template Functions
+
+```go
+engine, err := gonest.NewGoTemplateEngine(gonest.GoTemplateEngineOptions{
+    Dir: "./views",
+    FuncMap: template.FuncMap{
+        "upper": strings.ToUpper,
+        "formatDate": func(t time.Time) string {
+            return t.Format("Jan 2, 2006")
+        },
+    },
+})
+```
+
+## Rendering Templates
+
+Use `gonest.Render` in your handlers:
+
+```go
+func (c *HomeController) Register(r gonest.Router) {
+    r.Get("/", c.index)
+    r.Get("/about", c.about)
+}
+
+func (c *HomeController) index(ctx gonest.Context) error {
+    return gonest.Render(ctx, "index.html", map[string]any{
+        "Title":    "Home",
+        "Articles": c.service.GetRecent(),
+    })
+}
+
+func (c *HomeController) about(ctx gonest.Context) error {
+    return gonest.Render(ctx, "about.html", map[string]any{
+        "Title": "About Us",
+    })
+}
+```
+
+The response `Content-Type` is automatically set to `text/html; charset=utf-8`.
+
+## RenderInterceptor
+
+For automatic template rendering based on route metadata, use `RenderInterceptor`:
+
+```go
+app.UseGlobalInterceptors(gonest.NewRenderInterceptor(engine))
+
+// In controller -- set "render" metadata to the template name
+r.Get("/dashboard", c.dashboard).SetMetadata("render", "dashboard.html")
+```
+
+The interceptor renders the template using the handler's return value as template data.
+
+## TemplateEngine (Alternative)
+
+GoNest also provides a simpler `TemplateEngine` with lazy template loading:
+
+```go
+engine := gonest.NewTemplateEngine("./views")
+engine.SetExtension(".html")
+engine.AddFunc("upper", strings.ToUpper)
+
+// Use RenderHandler for a concise route definition
+r.Get("/", gonest.RenderHandler(engine, "index", func(ctx gonest.Context) any {
+    return map[string]any{"Title": "Home"}
+}))
+```
+
+## Static Files
+
+Serve static assets (CSS, JS, images) from a directory:
+
+```go
+func (c *Controller) Register(r gonest.Router) {
+    r.Get("/static/*", gonest.StaticFiles("/static", "./public"))
+}
+```
+
+This serves files from `./public` under the `/static` URL prefix. For example, `./public/style.css` is served at `/static/style.css`.
+
+## Example Template
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{.Title}}</title>
+</head>
+<body>
+    <h1>{{.Title}}</h1>
+    {{range .Articles}}
+    <article>
+        <h2>{{.Name}}</h2>
+        <p>{{.Summary}}</p>
+    </article>
+    {{end}}
+</body>
+</html>
+```
+
+See `example/21-mvc` for a complete working example.

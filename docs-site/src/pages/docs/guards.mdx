@@ -1,0 +1,109 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Guards
+---
+
+# Guards
+
+Guards determine whether a request should be handled. They run **after middleware** but **before interceptors and pipes**. Common use cases: authentication, authorization, rate limiting.
+
+## Implementing a Guard
+
+```go
+type AuthGuard struct {
+    authService *AuthService
+}
+
+func NewAuthGuard(authService *AuthService) *AuthGuard {
+    return &AuthGuard{authService: authService}
+}
+
+func (g *AuthGuard) CanActivate(ctx gonest.ExecutionContext) (bool, error) {
+    token := ctx.Header("Authorization")
+    if token == "" {
+        return false, gonest.NewUnauthorizedException("missing token")
+    }
+
+    user, err := g.authService.Verify(token)
+    if err != nil {
+        return false, err
+    }
+
+    ctx.Set("user", user) // attach user to request
+    return true, nil
+}
+```
+
+## Using Guards
+
+```go
+// Global — applies to all routes
+app.UseGlobalGuards(NewAuthGuard(authService))
+
+// Controller-level
+func (c *AdminController) Register(r gonest.Router) {
+    r.UseGuards(&AdminGuard{})
+    r.Get("/dashboard", c.dashboard)
+}
+
+// Route-level
+r.Delete("/:id", c.remove).Guards(&AdminGuard{})
+```
+
+## Role-Based Authorization
+
+```go
+type RolesGuard struct{}
+
+func (g *RolesGuard) CanActivate(ctx gonest.ExecutionContext) (bool, error) {
+    roles, ok := gonest.GetMetadata[[]string](ctx, "roles")
+    if !ok {
+        return true, nil // no roles required
+    }
+    user, _ := ctx.Get("user")
+    userRole := user.(*AuthUser).Role
+    for _, r := range roles {
+        if r == userRole {
+            return true, nil
+        }
+    }
+    return false, gonest.NewForbiddenException("insufficient role")
+}
+
+// On routes:
+r.Post("/", c.create).
+    SetMetadata("roles", []string{"admin"}).
+    Guards(&RolesGuard{})
+```
+
+## Public Routes
+
+Mark routes as public to skip global auth guards:
+
+```go
+// In guard:
+func (g *JWTGuard) CanActivate(ctx gonest.ExecutionContext) (bool, error) {
+    if isPublic, ok := gonest.GetMetadata[bool](ctx, "public"); ok && isPublic {
+        return true, nil
+    }
+    // ... verify JWT
+}
+
+// On routes:
+r.Get("/health", c.health).SetMetadata("public", true)
+```
+
+## GuardFunc Shorthand
+
+```go
+guard := gonest.GuardFunc(func(ctx gonest.ExecutionContext) (bool, error) {
+    return ctx.Header("X-API-Key") == "secret", nil
+})
+app.UseGlobalGuards(guard)
+```
+
+## Built-in Guards
+
+- **`ThrottleGuard`** — Rate limiting per IP
+- **`VersionGuard`** — API version routing
+- **`ThrottleByMetadataGuard`** — Per-route rate limits

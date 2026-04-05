@@ -1,0 +1,156 @@
+---
+const sections = [
+  {
+    title: 'Getting Started',
+    links: [
+      { href: '/docs/introduction', label: 'Introduction' },
+      { href: '/docs/quickstart', label: 'Quick Start' },
+      { href: '/docs/project-structure', label: 'Project Structure' },
+    ],
+  },
+  {
+    title: 'Fundamentals',
+    links: [
+      { href: '/docs/modules', label: 'Modules' },
+      { href: '/docs/controllers', label: 'Controllers' },
+      { href: '/docs/providers', label: 'Providers & DI' },
+      { href: '/docs/scopes', label: 'Injection Scopes' },
+      { href: '/docs/middleware', label: 'Middleware' },
+      { href: '/docs/lifecycle', label: 'Lifecycle Hooks' },
+      { href: '/docs/dynamic-modules', label: 'Dynamic Modules' },
+    ],
+  },
+  {
+    title: 'Request Pipeline',
+    links: [
+      { href: '/docs/guards', label: 'Guards' },
+      { href: '/docs/interceptors', label: 'Interceptors' },
+      { href: '/docs/pipes', label: 'Pipes & Validation' },
+      { href: '/docs/filters', label: 'Exception Filters' },
+      { href: '/docs/exceptions', label: 'HTTP Exceptions' },
+    ],
+  },
+  {
+    title: 'Features',
+    links: [
+      { href: '/docs/authentication', label: 'Authentication' },
+      { href: '/docs/sessions', label: 'Sessions' },
+      { href: '/docs/cors', label: 'CORS' },
+      { href: '/docs/serialization', label: 'Serialization' },
+      { href: '/docs/versioning', label: 'Versioning' },
+      { href: '/docs/file-upload', label: 'File Upload' },
+      { href: '/docs/streaming', label: 'Streaming & Raw Body' },
+      { href: '/docs/sse', label: 'Server-Sent Events' },
+      { href: '/docs/events', label: 'Events' },
+      { href: '/docs/templating', label: 'Templating / MVC' },
+      { href: '/docs/host-routing', label: 'Host Routing' },
+    ],
+  },
+  {
+    title: 'Modules',
+    links: [
+      { href: '/docs/config', label: 'Config' },
+      { href: '/docs/cache', label: 'Cache' },
+      { href: '/docs/schedule', label: 'Scheduling' },
+      { href: '/docs/queue', label: 'Queues' },
+      { href: '/docs/health', label: 'Health Checks' },
+      { href: '/docs/throttle', label: 'Rate Limiting' },
+      { href: '/docs/swagger', label: 'Swagger / OpenAPI' },
+      { href: '/docs/graphql', label: 'GraphQL' },
+    ],
+  },
+  {
+    title: 'Techniques',
+    links: [
+      { href: '/docs/database', label: 'Database' },
+      { href: '/docs/microservices', label: 'Microservices' },
+      { href: '/docs/websockets', label: 'WebSockets' },
+      { href: '/docs/testing', label: 'Testing' },
+      { href: '/docs/discovery', label: 'Discovery & Inspection' },
+      { href: '/docs/application-context', label: 'Application Context & REPL' },
+    ],
+  },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    {sections.map((section) => (
+      <div class="sidebar-section">
+        <h4>{section.title}</h4>
+        <ul>
+          {section.links.map((link) => (
+            <li>
+              <a href={link.href} class:list={[{ active: currentPath === link.href || currentPath === link.href + '/' }]}>
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+</aside>
+
+<style>
+  .sidebar {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border);
+    background: var(--color-bg);
+    padding: 1.5rem 0;
+    z-index: 10;
+  }
+  .sidebar-inner {
+    padding: 0 1.25rem;
+  }
+  .sidebar-section {
+    margin-bottom: 1.75rem;
+  }
+  .sidebar-section h4 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+    padding: 0;
+    border: none;
+  }
+  .sidebar-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .sidebar-section li {
+    margin: 0;
+  }
+  .sidebar-section a {
+    display: block;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .sidebar-section a:hover {
+    color: var(--color-text);
+    background: var(--color-bg-secondary);
+    text-decoration: none;
+  }
+  .sidebar-section a.active {
+    color: var(--color-primary-light);
+    background: rgba(108, 99, 255, 0.1);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar { display: none; }
+  }
+</style>

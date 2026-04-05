@@ -1,0 +1,177 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Discovery & Inspection
+---
+
+# Discovery & Inspection
+
+GoNest provides runtime introspection tools for examining the application's module graph, providers, controllers, and dependencies. Useful for debugging, admin dashboards, and tooling.
+
+## DiscoveryService
+
+`DiscoveryService` discovers providers and controllers across all modules at runtime. Equivalent to NestJS `DiscoveryService`.
+
+```go
+discovery := app.GetDiscoveryService()
+```
+
+### List All Providers
+
+```go
+providers := discovery.GetProviders()
+for _, p := range providers {
+    fmt.Printf("Type: %s, Module: %v\n", p.Type, p.Module)
+    // p.Instance is the resolved instance
+}
+```
+
+### List All Controllers
+
+```go
+controllers := discovery.GetControllers()
+for _, c := range controllers {
+    fmt.Printf("Controller: %T\n", c.Instance)
+}
+```
+
+### Find Providers by Interface
+
+Use the generic helper to find all providers implementing a specific interface:
+
+```go
+// Find all providers that implement HealthIndicator
+indicators := gonest.GetProvidersWithInterface[health.HealthIndicator](discovery)
+for _, indicator := range indicators {
+    result := indicator.Check()
+    fmt.Println(result.Status)
+}
+```
+
+### DiscoveredProvider
+
+| Field | Type | Description |
+|---|---|---|
+| `Instance` | `any` | The resolved provider instance |
+| `Type` | `reflect.Type` | The provider's Go type |
+| `Module` | `*Module` | The module that hosts this provider |
+
+### DiscoveredController
+
+| Field | Type | Description |
+|---|---|---|
+| `Instance` | `Controller` | The controller instance |
+| `Module` | `*Module` | The module that hosts this controller |
+
+---
+
+## GraphInspector
+
+`GraphInspector` analyzes the dependency graph of the entire application. Equivalent to NestJS `GraphInspector`.
+
+```go
+inspector := app.GetGraphInspector()
+```
+
+### Module Graph
+
+```go
+modules := inspector.GetModules()
+for _, node := range modules {
+    fmt.Printf("Module with %d imports\n", len(node.Imports))
+}
+```
+
+### Dependency Edges
+
+```go
+// Dependencies for a specific module
+edges := inspector.GetDependencies(myModule)
+for _, edge := range edges {
+    fmt.Printf("%s -> %s\n", edge.Source, edge.Target)
+}
+
+// All dependencies across the application
+allEdges := inspector.GetAllDependencies()
+```
+
+### Serialized Graph
+
+Export the entire dependency graph as JSON for visualization or tooling:
+
+```go
+graph := inspector.Serialize()
+
+// Get JSON
+jsonData, _ := graph.ToJSON()
+jsonPretty, _ := graph.ToJSONIndent()
+
+// Query the graph
+node := graph.FindNode(nodeID)
+outEdges := graph.FindEdgesFrom(nodeID)
+inEdges := graph.FindEdgesTo(nodeID)
+```
+
+The serialized graph contains:
+
+**Nodes** (`GraphNode`):
+
+| Field | Type | Description |
+|---|---|---|
+| `ID` | `string` | Deterministic unique identifier |
+| `Label` | `string` | Human-readable name |
+| `Type` | `string` | `"module"`, `"provider"`, or `"controller"` |
+| `Metadata` | `map[string]any` | Scope, resolved status, counts, etc. |
+
+**Edges** (`GraphEdge`):
+
+| Field | Type | Description |
+|---|---|---|
+| `ID` | `string` | Unique edge identifier |
+| `Source` | `string` | Source node ID |
+| `Target` | `string` | Target node ID |
+| `Type` | `string` | `"dependency"`, `"import"`, `"export"`, or `"contains"` |
+
+---
+
+## Reflector
+
+`Reflector` stores and retrieves metadata attached to handlers. Guards and interceptors use this to read route-level configuration.
+
+```go
+reflector := gonest.NewReflector()
+
+// Store metadata
+reflector.Set(handlerID, "roles", []string{"admin"})
+
+// Retrieve metadata
+roles, ok := reflector.Get(handlerID, "roles")
+
+// Get all metadata for a handler
+all := reflector.GetAll(handlerID)
+```
+
+### Generic Typed Retrieval
+
+In guards and interceptors, use `GetMetadata` with the `ExecutionContext`:
+
+```go
+func (g *RolesGuard) CanActivate(ctx gonest.ExecutionContext) (bool, error) {
+    roles, ok := gonest.GetMetadata[[]string](ctx, "roles")
+    if !ok {
+        return true, nil // no roles required
+    }
+    // check roles...
+}
+```
+
+---
+
+## Accessing from ApplicationContext
+
+Both services are also available on non-HTTP application contexts:
+
+```go
+ctx, _ := gonest.CreateApplicationContext(AppModule)
+discovery := ctx.GetDiscoveryService()
+inspector := ctx.GetGraphInspector()
+```

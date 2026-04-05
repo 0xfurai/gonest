@@ -1,0 +1,99 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Authentication
+---
+
+# Authentication
+
+GoNest provides the building blocks for JWT-based authentication using guards and metadata.
+
+## JWT Auth Pattern
+
+### 1. Auth Service
+
+```go
+type AuthService struct {
+    usersService *UsersService
+    secret       []byte
+}
+
+func (s *AuthService) Login(email, password string) (*TokenResponse, error) {
+    user := s.usersService.FindByEmail(email)
+    if user == nil || !verifyPassword(user.Password, password) {
+        return nil, gonest.NewUnauthorizedException("invalid credentials")
+    }
+    accessToken := s.signToken(jwtPayload{Sub: user.ID, Type: "access", Exp: ...})
+    refreshToken := s.signToken(jwtPayload{Sub: user.ID, Type: "refresh", Exp: ...})
+    return &TokenResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
+
+func (s *AuthService) ValidateToken(token string) (*AuthUser, error) {
+    payload, err := s.verifyToken(token)
+    if err != nil {
+        return nil, err
+    }
+    return &AuthUser{ID: payload.Sub, Role: payload.Role}, nil
+}
+```
+
+### 2. JWT Guard
+
+```go
+type JWTGuard struct {
+    authService *AuthService
+}
+
+func (g *JWTGuard) CanActivate(ctx gonest.ExecutionContext) (bool, error) {
+    // Skip public routes
+    if isPublic, ok := gonest.GetMetadata[bool](ctx, "public"); ok && isPublic {
+        return true, nil
+    }
+
+    auth := ctx.Header("Authorization")
+    if !strings.HasPrefix(auth, "Bearer ") {
+        return false, gonest.NewUnauthorizedException("missing token")
+    }
+
+    user, err := g.authService.ValidateToken(strings.TrimPrefix(auth, "Bearer "))
+    if err != nil {
+        return false, err
+    }
+
+    ctx.Set("user", user)
+    return true, nil
+}
+```
+
+### 3. Register as Global Guard
+
+```go
+app.UseGlobalGuards(auth.NewJWTGuard(authService))
+```
+
+### 4. Mark Public Routes
+
+```go
+r.Post("/login", c.login).SetMetadata("public", true)
+r.Post("/register", c.register).SetMetadata("public", true)
+```
+
+### 5. Access User in Handlers
+
+```go
+func (c *ProfileController) me(ctx gonest.Context) error {
+    user, _ := ctx.Get("user")
+    return ctx.JSON(200, user.(*AuthUser))
+}
+```
+
+## Role-Based Access
+
+Combine the JWT guard with a roles guard:
+
+```go
+r.Delete("/:id", c.remove).
+    SetMetadata("roles", []string{"admin"}).
+    Guards(&RolesGuard{})
+```
+
+See the [fullstack-api example](/docs/quickstart) for a complete implementation with registration, login, and refresh tokens.

@@ -1,0 +1,76 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Exception Filters
+---
+
+# Exception Filters
+
+Exception filters catch errors thrown during request processing and produce HTTP responses. GoNest has a built-in `DefaultExceptionFilter` that handles `*HTTPException` errors.
+
+## Default Error Response
+
+When a handler returns an `*HTTPException`, the default filter produces:
+
+```json
+{
+  "statusCode": 404,
+  "message": "cat not found",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "path": "/cats/999"
+}
+```
+
+## Throwing Errors
+
+```go
+func (c *CatsController) findOne(ctx gonest.Context) error {
+    cat := c.service.FindByID(id)
+    if cat == nil {
+        return gonest.NewNotFoundException("cat not found")
+    }
+    return ctx.JSON(200, cat)
+}
+```
+
+All built-in exceptions:
+
+| Function | Status |
+|----------|--------|
+| `NewBadRequestException(msg)` | 400 |
+| `NewUnauthorizedException(msg)` | 401 |
+| `NewForbiddenException(msg)` | 403 |
+| `NewNotFoundException(msg)` | 404 |
+| `NewConflictException(msg)` | 409 |
+| `NewUnprocessableEntityException(msg)` | 422 |
+| `NewTooManyRequestsException(msg)` | 429 |
+| `NewInternalServerError(msg)` | 500 |
+
+## Custom Exception Filter
+
+```go
+type CustomFilter struct{}
+
+func (f *CustomFilter) Catch(err error, host gonest.ArgumentsHost) error {
+    httpCtx := host.SwitchToHTTP()
+    resp := httpCtx.Response()
+
+    code := 500
+    msg := err.Error()
+    if httpErr, ok := err.(*gonest.HTTPException); ok {
+        code = httpErr.StatusCode()
+    }
+
+    return resp.Status(code).JSON(map[string]any{
+        "error":   true,
+        "code":    code,
+        "message": msg,
+    })
+}
+
+// Register globally
+app.UseGlobalFilters(&CustomFilter{})
+```
+
+## Filter Priority
+
+Route-level filters run first, then controller-level, then global, then the built-in default.

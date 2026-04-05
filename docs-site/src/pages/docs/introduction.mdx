@@ -1,0 +1,58 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Introduction
+---
+
+# Introduction
+
+GoNest is a framework for building efficient, scalable Go server-side applications. It brings NestJS's proven architectural patterns to the Go ecosystem, expressed idiomatically using Go interfaces, struct tags, and reflection-based dependency injection.
+
+## Philosophy
+
+Go has excellent libraries for building web servers, but lacks an opinionated architectural framework. GoNest fills that gap by providing:
+
+- **Modules** for organizing code into cohesive feature boundaries
+- **Dependency Injection** for loose coupling and testability
+- **Request Pipeline** (middleware, guards, interceptors, pipes, filters) for clean separation of concerns
+- **Convention over configuration** so teams can focus on business logic
+
+## NestJS to Go Translation
+
+GoNest is not a 1:1 port of NestJS. It adapts NestJS concepts to Go idioms:
+
+| NestJS (TypeScript) | GoNest (Go) |
+|---------------------|-------------|
+| `@Controller('cats')` | `Controller` interface + `Register(Router)` |
+| `@Injectable()` | Constructor functions resolved by DI |
+| `@Module({...})` | `gonest.NewModule(ModuleOptions{...})` |
+| `@Get()`, `@Post()` | `r.Get("/", handler)`, `r.Post("/", handler)` |
+| `@Body()`, `@Param()` | `ctx.Bind(&dto)`, `ctx.Param("id")` |
+| `@UseGuards()` | `r.UseGuards(guard)` or `.Guards()` |
+| Decorators | `SetMetadata()` + `Reflector` |
+| `NestFactory.create()` | `gonest.Create(AppModule)` |
+
+## Execution Pipeline
+
+Every HTTP request flows through:
+
+```
+Request
+  → Middleware
+    → Guards
+      → Interceptors (before)
+        → Pipes (validation/transformation)
+          → Route Handler
+        → Interceptors (after)
+      → Exception Filters (on error)
+    → Response
+```
+
+## Zero External Dependencies
+
+The core framework uses only the Go standard library. Optional modules add external dependencies only when needed (e.g., gorilla/websocket for WebSockets, go-redis for Redis).
+
+## Next Steps
+
+- [Quick Start](/docs/quickstart) — Build your first GoNest application
+- [Modules](/docs/modules) — Understand the module system
+- [Controllers](/docs/controllers) — Define HTTP endpoints

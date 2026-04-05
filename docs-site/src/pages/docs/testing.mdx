@@ -1,0 +1,95 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Testing
+---
+
+# Testing
+
+GoNest provides a testing module for creating test instances with overridden providers.
+
+## Unit Testing Controllers
+
+```go
+import gonesttest "github.com/gonest/testing"
+
+func TestCatsController_FindAll(t *testing.T) {
+    mod := gonesttest.Test(CatsModule).
+        OverrideProvider((*CatsService)(nil), NewMockCatsService).
+        Compile(t)
+
+    controller := gonesttest.Resolve[*CatsController](mod)
+    // ... test controller methods directly
+}
+```
+
+## HTTP Integration Testing
+
+```go
+func TestCatsAPI(t *testing.T) {
+    app := gonest.Create(AppModule, gonest.ApplicationOptions{Logger: gonest.NopLogger{}})
+    app.Init()
+
+    // GET /cats
+    req := httptest.NewRequest("GET", "/cats", nil)
+    w := httptest.NewRecorder()
+    app.Handler().ServeHTTP(w, req)
+
+    if w.Code != 200 {
+        t.Errorf("expected 200, got %d", w.Code)
+    }
+
+    var cats []Cat
+    json.Unmarshal(w.Body.Bytes(), &cats)
+    if len(cats) == 0 {
+        t.Error("expected cats")
+    }
+}
+```
+
+## Testing Guards
+
+```go
+func TestRolesGuard(t *testing.T) {
+    guard := &RolesGuard{}
+
+    // Create execution context with metadata
+    ctx := newExecutionContext(httpCtx, nil, nil, map[string]any{
+        "roles": []string{"admin"},
+    })
+    ctx.Set("user", &AuthUser{Role: "user"})
+
+    allowed, err := guard.CanActivate(ctx)
+    if allowed {
+        t.Error("user should not have admin access")
+    }
+}
+```
+
+## Testing Pipes
+
+```go
+func TestParseIntPipe(t *testing.T) {
+    pipe := gonest.NewParseIntPipe("id")
+    meta := gonest.ArgumentMetadata{Type: "param", Name: "id"}
+
+    result, err := pipe.Transform("42", meta)
+    if result != 42 {
+        t.Errorf("expected 42, got %v", result)
+    }
+
+    _, err = pipe.Transform("abc", meta)
+    if err == nil {
+        t.Error("expected validation error")
+    }
+}
+```
+
+## Test Coverage
+
+Run all framework tests:
+
+```bash
+go test ./... -v -cover
+```
+
+The framework includes 307+ test functions covering every component.
