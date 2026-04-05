@@ -8,7 +8,7 @@ title: Queues
 The `queue` module provides in-memory job queues with configurable workers and retry support.
 
 ```go
-import "github.com/gonest/queue"
+import "github.com/0xfurai/gonest/queue"
 
 q := queue.NewQueue("emails", 100)  // buffer size 100
 q.SetWorkers(4)                      // 4 concurrent workers

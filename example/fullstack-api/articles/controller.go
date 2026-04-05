@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gonest"
-	"github.com/gonest/example/fullstack-api/common"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/example/fullstack-api/common"
 )
 
 // ArticlesController handles /articles endpoints.

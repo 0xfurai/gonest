@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"syscall"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // ApplicationContext is a standalone application context without HTTP.

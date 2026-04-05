@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gonest"
-	"github.com/gonest/health"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/health"
 )
 
 type AppController struct{}

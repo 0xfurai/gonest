@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gonest"
-	gosql "github.com/gonest/database/sql"
+	"github.com/0xfurai/gonest"
+	gosql "github.com/0xfurai/gonest/database/sql"
 
 	_ "modernc.org/sqlite"
 )

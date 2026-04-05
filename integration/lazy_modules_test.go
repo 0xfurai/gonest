@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // ---------------------------------------------------------------------------

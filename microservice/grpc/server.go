@@ -7,7 +7,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // grpcRequest is the wire format for gRPC-style requests.

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gonest/microservice"
-	"github.com/gonest/microservice/grpc"
+	"github.com/0xfurai/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice/grpc"
 )
 
 // --- DTOs ---

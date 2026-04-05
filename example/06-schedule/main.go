@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gonest"
-	"github.com/gonest/schedule"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/schedule"
 )
 
 var taskCount atomic.Int64

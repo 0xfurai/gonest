@@ -3,7 +3,7 @@ package mail
 import (
 	"fmt"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // MailService sends emails (stub implementation).

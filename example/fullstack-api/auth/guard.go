@@ -3,7 +3,7 @@ package auth
 import (
 	"strings"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // JWTGuard is the global authentication guard.

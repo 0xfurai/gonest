@@ -3,7 +3,7 @@ package mongo
 import (
 	"fmt"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // Options configures the MongoDB module.

@@ -1,3 +1,3 @@
-module github.com/gonest
+module github.com/0xfurai/gonest
 
 go 1.23

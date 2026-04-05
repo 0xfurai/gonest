@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 func TestAPIEndpoint(t *testing.T) {

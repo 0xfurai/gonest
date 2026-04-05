@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // --- DTOs ---

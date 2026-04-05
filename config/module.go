@@ -1,6 +1,6 @@
 package config
 
-import "github.com/gonest"
+import "github.com/0xfurai/gonest"
 
 // ModuleOptions configures the config module.
 type ModuleOptions struct {

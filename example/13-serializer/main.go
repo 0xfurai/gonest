@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 type User struct {

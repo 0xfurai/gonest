@@ -3,7 +3,7 @@ package cache
 import (
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // Options configures the cache module.

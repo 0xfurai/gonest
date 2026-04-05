@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // rmqRequest is the wire format for RabbitMQ-style requests.

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/gonest"
-	"github.com/gonest/swagger"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/swagger"
 )
 
 // --- DTOs ---

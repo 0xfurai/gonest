@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gonest"
-	"github.com/gonest/example/fullstack-api/common"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/example/fullstack-api/common"
 )
 
 // UsersController handles /users endpoints.

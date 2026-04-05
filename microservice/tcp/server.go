@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // Server implements a TCP-based microservice server.

@@ -3,8 +3,8 @@ package files
 import (
 	"net/http"
 
-	"github.com/gonest"
-	"github.com/gonest/example/fullstack-api/common"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/example/fullstack-api/common"
 )
 
 // FilesController handles /files endpoints.

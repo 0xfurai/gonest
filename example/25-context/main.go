@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // --- DTOs ---

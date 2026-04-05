@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // mqttRequest is the wire format for MQTT-style requests.

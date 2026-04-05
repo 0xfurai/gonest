@@ -3,7 +3,7 @@ package mqtt
 import (
 	"fmt"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // QoS represents MQTT Quality of Service levels.

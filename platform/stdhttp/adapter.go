@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gonest/platform"
+	"github.com/0xfurai/gonest/platform"
 )
 
 // trieNode is a node in the URL path trie used for route matching.

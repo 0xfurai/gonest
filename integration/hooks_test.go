@@ -3,7 +3,7 @@ package integration
 import (
 	"testing"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // ---------------------------------------------------------------------------

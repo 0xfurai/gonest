@@ -3,7 +3,7 @@ package common
 import (
 	"strconv"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // PaginationQuery extracts pagination from query params.

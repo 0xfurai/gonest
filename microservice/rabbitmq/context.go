@@ -1,6 +1,6 @@
 package rabbitmq
 
-import "github.com/gonest/microservice"
+import "github.com/0xfurai/gonest/microservice"
 
 // RmqContext carries RabbitMQ-specific metadata for a received message.
 type RmqContext struct {

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"github.com/gonest"
-	"github.com/gonest/queue"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/queue"
 )
 
 // --- Audio Service ---

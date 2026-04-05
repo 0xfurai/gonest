@@ -3,7 +3,7 @@ package cache
 import (
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // CacheInterceptor caches GET request responses.

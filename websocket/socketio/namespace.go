@@ -3,7 +3,7 @@ package socketio
 import (
 	"sync"
 
-	"github.com/gonest/websocket"
+	"github.com/0xfurai/gonest/websocket"
 )
 
 // Namespace represents a Socket.IO namespace. Each namespace has its own

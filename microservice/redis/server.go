@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // redisRequest is the wire format for Redis-style requests.

@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // Migrations defines the database schema.

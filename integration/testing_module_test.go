@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gonest"
-	nesttest "github.com/gonest/testing"
+	"github.com/0xfurai/gonest"
+	nesttest "github.com/0xfurai/gonest/testing"
 )
 
 // ---------------------------------------------------------------------------

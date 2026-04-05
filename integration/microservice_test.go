@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gonest/microservice"
-	"github.com/gonest/microservice/tcp"
+	"github.com/0xfurai/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice/tcp"
 )
 
 // ---------------------------------------------------------------------------

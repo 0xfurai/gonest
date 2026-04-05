@@ -74,15 +74,15 @@ import (
 	// _ "github.com/mattn/go-sqlite3"
 	_ "modernc.org/sqlite"
 
-	"github.com/gonest"
-	"github.com/gonest/example/fullstack-api/articles"
-	"github.com/gonest/example/fullstack-api/auth"
-	"github.com/gonest/example/fullstack-api/common"
-	"github.com/gonest/example/fullstack-api/files"
-	"github.com/gonest/example/fullstack-api/mail"
-	"github.com/gonest/example/fullstack-api/users"
-	"github.com/gonest/health"
-	"github.com/gonest/swagger"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/example/fullstack-api/articles"
+	"github.com/0xfurai/gonest/example/fullstack-api/auth"
+	"github.com/0xfurai/gonest/example/fullstack-api/common"
+	"github.com/0xfurai/gonest/example/fullstack-api/files"
+	"github.com/0xfurai/gonest/example/fullstack-api/mail"
+	"github.com/0xfurai/gonest/example/fullstack-api/users"
+	"github.com/0xfurai/gonest/health"
+	"github.com/0xfurai/gonest/swagger"
 )
 
 func main() {

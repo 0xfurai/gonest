@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 func createTestApp(t *testing.T) *gonest.Application {

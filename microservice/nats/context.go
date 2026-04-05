@@ -1,6 +1,6 @@
 package nats
 
-import "github.com/gonest/microservice"
+import "github.com/0xfurai/gonest/microservice"
 
 // NatsContext carries NATS-specific metadata for a received message.
 type NatsContext struct {

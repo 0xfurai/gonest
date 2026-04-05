@@ -1,6 +1,6 @@
 package redis
 
-import "github.com/gonest/microservice"
+import "github.com/0xfurai/gonest/microservice"
 
 // RedisContext carries Redis-specific metadata for a received message.
 type RedisContext struct {

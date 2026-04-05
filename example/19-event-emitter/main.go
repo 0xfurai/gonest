@@ -6,7 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // --- Events ---

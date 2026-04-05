@@ -3,7 +3,7 @@ package nats
 import (
 	"fmt"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // Options configures a NATS microservice transport.

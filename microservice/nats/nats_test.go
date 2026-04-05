@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 func TestNATS_Integration(t *testing.T) {

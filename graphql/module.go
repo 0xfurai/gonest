@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // Options configures the GraphQL module.

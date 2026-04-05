@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gonest"
-	"github.com/gonest/websocket"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/websocket"
 )
 
 // EventsGateway handles WebSocket connections.

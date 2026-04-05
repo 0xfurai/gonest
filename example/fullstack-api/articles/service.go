@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // ArticlesService handles article CRUD backed by a SQL database.

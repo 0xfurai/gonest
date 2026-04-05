@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gonest"
-	"github.com/gonest/example/fullstack-api/common"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/example/fullstack-api/common"
 )
 
 // UsersService handles user business logic backed by a SQL database.

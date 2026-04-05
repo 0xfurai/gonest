@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 type SSEController struct{}

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 type ApiController struct{}

@@ -1,6 +1,6 @@
 package kafka
 
-import "github.com/gonest/microservice"
+import "github.com/0xfurai/gonest/microservice"
 
 // KafkaContext carries Kafka-specific metadata for a received message.
 type KafkaContext struct {

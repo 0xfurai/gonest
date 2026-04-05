@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gonest"
-	"github.com/gonest/graphql"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/graphql"
 )
 
 // ---------------------------------------------------------------------------

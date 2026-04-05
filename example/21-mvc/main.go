@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // --- Data ---

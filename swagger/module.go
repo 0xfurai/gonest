@@ -3,7 +3,7 @@ package swagger
 import (
 	"net/http"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // Options configures the Swagger module.

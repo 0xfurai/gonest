@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gonest/websocket"
+	"github.com/0xfurai/gonest/websocket"
 )
 
 // SocketMiddleware is a function that runs when a new socket connects.

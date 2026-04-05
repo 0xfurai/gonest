@@ -1,6 +1,6 @@
 package common
 
-import "github.com/gonest"
+import "github.com/0xfurai/gonest"
 
 type Role string
 

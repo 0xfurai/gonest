@@ -3,7 +3,7 @@ package websocket
 import (
 	"net/http"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // GatewayOptions configures the WebSocket module.

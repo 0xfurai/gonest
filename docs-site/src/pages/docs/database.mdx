@@ -10,7 +10,7 @@ GoNest provides a generic SQL database module that works with any `database/sql`
 ## SQL Database (PostgreSQL, MySQL, SQLite, SQL Server)
 
 ```go
-import dbsql "github.com/gonest/database/sql"
+import dbsql "github.com/0xfurai/gonest/database/sql"
 ```
 
 ### PostgreSQL
@@ -125,7 +125,7 @@ checker := dbsql.NewHealthChecker(db, "postgres")
 ## MongoDB
 
 ```go
-import "github.com/gonest/database/mongo"
+import "github.com/0xfurai/gonest/database/mongo"
 
 mongoModule := mongo.NewModule(mongo.Options{
     URI:      "mongodb://localhost:27017",
@@ -140,7 +140,7 @@ Provides `*mongo.Connection` with URI and database name.
 The `database` package defines a generic `Repository[T]` interface:
 
 ```go
-import "github.com/gonest/database"
+import "github.com/0xfurai/gonest/database"
 
 type Repository[T any] interface {
     FindAll(ctx context.Context) ([]T, error)
@@ -157,7 +157,7 @@ Implement this with your ORM of choice (GORM, sqlx, ent, Bun, sqlc).
 ## Pagination Helper
 
 ```go
-import "github.com/gonest/database"
+import "github.com/0xfurai/gonest/database"
 
 items := fetchAllUsers() // []User
 result := database.Paginate(items, page, limit)

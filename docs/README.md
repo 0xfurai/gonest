@@ -5,7 +5,7 @@ A progressive Go framework for building efficient, reliable, and scalable server
 ## Installation
 
 ```bash
-go get github.com/gonest
+go get github.com/0xfurai/gonest
 ```
 
 ## Quick Start
@@ -17,7 +17,7 @@ import (
     "log"
     "net/http"
 
-    "github.com/gonest"
+    "github.com/0xfurai/gonest"
 )
 
 type AppController struct{}

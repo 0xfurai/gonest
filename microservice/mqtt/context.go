@@ -1,6 +1,6 @@
 package mqtt
 
-import "github.com/gonest/microservice"
+import "github.com/0xfurai/gonest/microservice"
 
 // MqttContext carries MQTT-specific metadata for a received message.
 type MqttContext struct {

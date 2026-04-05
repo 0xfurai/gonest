@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gonest/websocket"
+	"github.com/0xfurai/gonest/websocket"
 )
 
 // IoAdapter implements a Socket.IO–compatible WebSocket adapter with rooms,

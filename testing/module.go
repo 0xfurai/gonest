@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // TestingModule provides a builder for creating test modules with overridden providers.

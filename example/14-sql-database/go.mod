@@ -1,11 +1,11 @@
-module github.com/gonest/example/14-sql-database
+module github.com/0xfurai/gonest/example/14-sql-database
 
 go 1.25.0
 
-replace github.com/gonest => ../../
+replace github.com/0xfurai/gonest => ../../
 
 require (
-	github.com/gonest v0.0.0-00010101000000-000000000000
+	github.com/0xfurai/gonest v0.0.0-00010101000000-000000000000
 	modernc.org/sqlite v1.48.1
 )
 

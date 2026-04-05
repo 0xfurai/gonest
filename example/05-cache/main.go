@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gonest"
-	"github.com/gonest/cache"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/cache"
 )
 
 type ItemsController struct {

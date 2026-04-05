@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // RequestLoggerMiddleware logs every request with timing.

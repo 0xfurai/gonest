@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gonest/platform"
+	"github.com/0xfurai/gonest/platform"
 )
 
 func TestAdapter_BasicRouting(t *testing.T) {

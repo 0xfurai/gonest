@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gonest"
-	"github.com/gonest/example/fullstack-api/common"
-	"github.com/gonest/example/fullstack-api/users"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/example/fullstack-api/common"
+	"github.com/0xfurai/gonest/example/fullstack-api/users"
 )
 
 // AuthService handles authentication and token management.

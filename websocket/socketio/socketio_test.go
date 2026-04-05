@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gonest/websocket"
+	"github.com/0xfurai/gonest/websocket"
 )
 
 // mockConn implements websocket.WebSocketConn for testing.

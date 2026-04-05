@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/gonest"
+import "github.com/0xfurai/gonest"
 
 // NewModule creates the auth module. It requires UsersModule to be imported
 // in the parent so that UsersService is available.

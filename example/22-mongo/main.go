@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/gonest"
-	"github.com/gonest/database/mongo"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/database/mongo"
 )
 
 // --- DTOs ---

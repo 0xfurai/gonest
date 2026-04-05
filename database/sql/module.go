@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // Driver identifies the SQL database driver.

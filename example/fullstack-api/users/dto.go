@@ -1,6 +1,6 @@
 package users
 
-import "github.com/gonest/example/fullstack-api/common"
+import "github.com/0xfurai/gonest/example/fullstack-api/common"
 
 // CreateUserDto is used for admin user creation.
 type CreateUserDto struct {

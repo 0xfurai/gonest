@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gonest"
-	"github.com/gonest/health"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/health"
 )
 
 // createTestApp builds the module from scratch since main() creates it locally.

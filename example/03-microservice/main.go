@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gonest"
-	"github.com/gonest/microservice"
-	"github.com/gonest/microservice/tcp"
+	"github.com/0xfurai/gonest"
+	"github.com/0xfurai/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice/tcp"
 )
 
 // --- Microservice Server Side ---

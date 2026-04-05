@@ -3,7 +3,7 @@ package kafka
 import (
 	"fmt"
 
-	"github.com/gonest/microservice"
+	"github.com/0xfurai/gonest/microservice"
 )
 
 // Options configures a Kafka microservice transport.

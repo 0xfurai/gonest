@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 func TestEngine_QueryResolver(t *testing.T) {

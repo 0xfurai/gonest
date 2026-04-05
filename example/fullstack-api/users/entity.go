@@ -3,7 +3,7 @@ package users
 import (
 	"time"
 
-	"github.com/gonest/example/fullstack-api/common"
+	"github.com/0xfurai/gonest/example/fullstack-api/common"
 )
 
 // User is the user entity stored in the database.

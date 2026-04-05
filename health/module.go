@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/gonest"
+	"github.com/0xfurai/gonest"
 )
 
 // Status represents the health status of a component.

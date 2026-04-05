@@ -1,6 +1,6 @@
 package grpc
 
-import "github.com/gonest/microservice"
+import "github.com/0xfurai/gonest/microservice"
 
 // GrpcContext carries gRPC-specific metadata for a received message.
 type GrpcContext struct {

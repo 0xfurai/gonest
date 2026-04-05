@@ -3,8 +3,8 @@ package integration
 import (
 	"testing"
 
-	"github.com/gonest"
-	gosql "github.com/gonest/database/sql"
+	"github.com/0xfurai/gonest"
+	gosql "github.com/0xfurai/gonest/database/sql"
 )
 
 // ---------------------------------------------------------------------------

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gonest/platform"
-	"github.com/gonest/platform/stdhttp"
+	"github.com/0xfurai/gonest/platform"
+	"github.com/0xfurai/gonest/platform/stdhttp"
 )
 
 // Application is the main application instance, equivalent to NestJS INestApplication.
