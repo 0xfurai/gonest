@@ -1,5 +1,9 @@
 # GoNest
 
+[![Website](https://img.shields.io/badge/website-gonest.org-blue)](https://gonest.org) [![Docs](https://img.shields.io/badge/docs-gonest.org%2Fdocs-green)](https://gonest.org/docs/introduction/)
+
+**Website:** [https://gonest.org](https://gonest.org) | **Docs:** [https://gonest.org/docs/introduction/](https://gonest.org/docs/introduction/)
+
 A progressive Go framework for building efficient, reliable and scalable server-side applications. Inspired by [NestJS](https://nestjs.com/), GoNest brings the same modular, dependency-injected architecture to the Go ecosystem.
 
 ```
