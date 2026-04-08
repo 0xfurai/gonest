@@ -8,8 +8,10 @@
     "preview": "astro preview"
   },
   "dependencies": {
-    "astro": "^5.7.0",
     "@astrojs/mdx": "^4.2.0",
+    "@astrojs/rss": "^4.0.18",
+    "@astrojs/sitemap": "^3.7.2",
+    "astro": "^5.7.0",
     "shiki": "^3.2.0"
   }
 }
