@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://gonest.dev/sitemap-index.xml
+Sitemap: https://gonest.org/sitemap-index.xml
