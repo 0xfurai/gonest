@@ -461,7 +461,7 @@ func (app *Application) executePipeline(execCtx *executionContext, route *Route,
 		allInterceptors := append(app.globalInterceptors[:0:0], app.globalInterceptors...)
 		allInterceptors = append(allInterceptors, route.Interceptors...)
 
-		return app.runInterceptors(allInterceptors, 0, execCtx, func() (any, error) {
+		result, err := app.runInterceptors(allInterceptors, 0, execCtx, func() (any, error) {
 			// 4. Run pipes on params
 			allPipes := append(app.globalPipes[:0:0], app.globalPipes...)
 			allPipes = append(allPipes, route.Pipes...)
@@ -496,6 +496,10 @@ func (app *Application) executePipeline(execCtx *executionContext, route *Route,
 			err := route.Handler(ctx)
 			return nil, err
 		})
+		if err != nil {
+			return err
+		}
+		return app.writeInterceptorResult(ctx, route, result)
 	})
 }
 
@@ -508,10 +512,9 @@ func (app *Application) runMiddleware(mw []Middleware, idx int, ctx Context, fin
 	})
 }
 
-func (app *Application) runInterceptors(interceptors []any, idx int, ctx ExecutionContext, handler func() (any, error)) error {
+func (app *Application) runInterceptors(interceptors []any, idx int, ctx ExecutionContext, handler func() (any, error)) (any, error) {
 	if idx >= len(interceptors) {
-		_, err := handler()
-		return err
+		return handler()
 	}
 
 	interceptor := app.resolveInterceptor(interceptors[idx])
@@ -520,22 +523,27 @@ func (app *Application) runInterceptors(interceptors []any, idx int, ctx Executi
 	}
 
 	next := NewCallHandler(func() (any, error) {
-		var finalResult any
-		var finalErr error
-		err := app.runInterceptors(interceptors, idx+1, ctx, func() (any, error) {
-			result, err := handler()
-			finalResult = result
-			finalErr = err
-			return result, err
-		})
-		if err != nil {
-			return nil, err
-		}
-		return finalResult, finalErr
+		return app.runInterceptors(interceptors, idx+1, ctx, handler)
 	})
 
-	_, err := interceptor.Intercept(ctx, next)
-	return err
+	return interceptor.Intercept(ctx, next)
+}
+
+func (app *Application) writeInterceptorResult(ctx *defaultContext, route *Route, result any) error {
+	if result == nil || ctx.Written() {
+		return nil
+	}
+
+	statusCode := http.StatusOK
+	if ctx.status != 0 {
+		statusCode = ctx.status
+	} else if route != nil {
+		if code, ok := route.Metadata["__httpCode"].(int); ok && code > 0 {
+			statusCode = code
+		}
+	}
+
+	return ctx.JSON(statusCode, result)
 }
 
 func (app *Application) resolveGuard(g any) Guard {

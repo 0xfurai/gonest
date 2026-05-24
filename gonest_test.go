@@ -801,6 +801,118 @@ func TestInterceptorFunc(t *testing.T) {
 	}
 }
 
+type interceptorResultController struct{}
+
+func newInterceptorResultController() *interceptorResultController {
+	return &interceptorResultController{}
+}
+
+func (c *interceptorResultController) Register(r Router) {
+	r.Prefix("/interceptor-results")
+	r.Get("/wrapped", c.noop).
+		Interceptors(&wrappingResultInterceptor{}, &producingResultInterceptor{}).
+		HttpCode(http.StatusAccepted)
+	r.Get("/written", c.written).Interceptors(&postWriteResultInterceptor{})
+}
+
+func (c *interceptorResultController) noop(ctx Context) error {
+	return nil
+}
+
+func (c *interceptorResultController) written(ctx Context) error {
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "handler"})
+}
+
+type producingResultInterceptor struct{}
+
+func (i *producingResultInterceptor) Intercept(ctx ExecutionContext, next CallHandler) (any, error) {
+	result, err := next.Handle()
+	if err != nil || result != nil {
+		return result, err
+	}
+	return map[string]string{"message": "from interceptor"}, nil
+}
+
+type wrappingResultInterceptor struct{}
+
+func (i *wrappingResultInterceptor) Intercept(ctx ExecutionContext, next CallHandler) (any, error) {
+	result, err := next.Handle()
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"data": result, "success": true}, nil
+}
+
+type postWriteResultInterceptor struct{}
+
+func (i *postWriteResultInterceptor) Intercept(ctx ExecutionContext, next CallHandler) (any, error) {
+	if _, err := next.Handle(); err != nil {
+		return nil, err
+	}
+	return map[string]string{"message": "interceptor"}, nil
+}
+
+func TestApplication_InterceptorResultIsWritten(t *testing.T) {
+	module := NewModule(ModuleOptions{
+		Controllers: []any{newInterceptorResultController},
+	})
+
+	app := Create(module, ApplicationOptions{Logger: NopLogger{}})
+	if err := app.Init(); err != nil {
+		t.Fatalf("init failed: %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/interceptor-results/wrapped", nil)
+	w := httptest.NewRecorder()
+	app.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusAccepted {
+		t.Fatalf("expected %d, got %d", http.StatusAccepted, w.Code)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON response: %v", err)
+	}
+	if body["success"] != true {
+		t.Errorf("expected success true, got %v", body["success"])
+	}
+	data, ok := body["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected data object, got %T", body["data"])
+	}
+	if data["message"] != "from interceptor" {
+		t.Errorf("expected transformed message, got %v", data["message"])
+	}
+}
+
+func TestApplication_InterceptorResultDoesNotOverwriteWrittenResponse(t *testing.T) {
+	module := NewModule(ModuleOptions{
+		Controllers: []any{newInterceptorResultController},
+	})
+
+	app := Create(module, ApplicationOptions{Logger: NopLogger{}})
+	if err := app.Init(); err != nil {
+		t.Fatalf("init failed: %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/interceptor-results/written", nil)
+	w := httptest.NewRecorder()
+	app.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected %d, got %d", http.StatusOK, w.Code)
+	}
+
+	var body map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON response: %v", err)
+	}
+	if body["message"] != "handler" {
+		t.Errorf("expected handler response, got %q", body["message"])
+	}
+}
+
 // --- ExceptionFilterFunc adapter ---
 
 func TestExceptionFilterFunc_Integration(t *testing.T) {
