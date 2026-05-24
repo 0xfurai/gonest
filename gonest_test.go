@@ -363,6 +363,82 @@ func TestApplication_ExceptionFilter(t *testing.T) {
 	}
 }
 
+type scopedExceptionFilter struct {
+	status int
+	scope  string
+	called *int
+}
+
+func (f *scopedExceptionFilter) Catch(err error, host ArgumentsHost) error {
+	if f.called != nil {
+		(*f.called)++
+	}
+	httpCtx := host.SwitchToHTTP()
+	resp := httpCtx.Response()
+	resp.Header().Set("Content-Type", "application/json")
+	resp.WriteHeader(f.status)
+	return json.NewEncoder(resp).Encode(map[string]string{"scope": f.scope})
+}
+
+type scopedFilterController struct{}
+
+func newScopedFilterController() *scopedFilterController { return &scopedFilterController{} }
+
+func (c *scopedFilterController) Register(r Router) {
+	r.Prefix("/filters")
+	r.UseFilters(&scopedExceptionFilter{status: 409, scope: "controller"})
+	r.Get("/controller", c.fail)
+	r.Get("/route", c.fail).Filters(&scopedExceptionFilter{status: 422, scope: "route"})
+}
+
+func (c *scopedFilterController) fail(ctx Context) error {
+	return NewBadRequestException("scoped failure")
+}
+
+func TestApplication_RouteAndControllerFilters(t *testing.T) {
+	module := NewModule(ModuleOptions{
+		Controllers: []any{newScopedFilterController},
+	})
+
+	globalCalls := 0
+	app := Create(module, ApplicationOptions{Logger: NopLogger{}})
+	app.UseGlobalFilters(&scopedExceptionFilter{status: 500, scope: "global", called: &globalCalls})
+	if err := app.Init(); err != nil {
+		t.Fatalf("init failed: %v", err)
+	}
+
+	tests := []struct {
+		path   string
+		status int
+		scope  string
+	}{
+		{"/filters/controller", 409, "controller"},
+		{"/filters/route", 422, "route"},
+	}
+
+	for _, tt := range tests {
+		req := httptest.NewRequest("GET", tt.path, nil)
+		w := httptest.NewRecorder()
+		app.Handler().ServeHTTP(w, req)
+
+		if w.Code != tt.status {
+			t.Errorf("%s: expected %d, got %d", tt.path, tt.status, w.Code)
+		}
+
+		var body map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("%s: invalid JSON response: %v", tt.path, err)
+		}
+		if body["scope"] != tt.scope {
+			t.Errorf("%s: expected scope %q, got %q", tt.path, tt.scope, body["scope"])
+		}
+	}
+
+	if globalCalls != 0 {
+		t.Errorf("expected global filter not to run when scoped filters handle errors, got %d calls", globalCalls)
+	}
+}
+
 // --- Middleware tests ---
 
 type countingMiddleware struct {

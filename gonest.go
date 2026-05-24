@@ -16,11 +16,11 @@ import (
 
 // Application is the main application instance, equivalent to NestJS INestApplication.
 type Application struct {
-	module     *Module
-	adapter    platform.HTTPAdapter
-	logger     Logger
-	reflector  *Reflector
-	routes     []*Route
+	module    *Module
+	adapter   platform.HTTPAdapter
+	logger    Logger
+	reflector *Reflector
+	routes    []*Route
 
 	globalGuards       []any
 	globalInterceptors []any
@@ -33,10 +33,10 @@ type Application struct {
 	graphInspector *GraphInspector
 	lazyLoader     *LazyModuleLoader
 
-	shutdownSignals []os.Signal
+	shutdownSignals      []os.Signal
 	globalPrefixExcludes []string
-	viewEngine     ViewEngine
-	sessionStore   SessionStore
+	viewEngine           ViewEngine
+	sessionStore         SessionStore
 }
 
 // ApplicationOptions configures the application.
@@ -413,7 +413,7 @@ func (app *Application) registerRoute(route *Route, ctrl Controller) {
 		// Execute the pipeline
 		err := app.executePipeline(execCtx, route, ctx)
 		if err != nil && !ctx.Written() {
-			app.handleError(err, ctx)
+			app.handleError(err, route, ctx)
 		}
 	}
 
@@ -580,9 +580,13 @@ func (app *Application) resolveInterceptor(i any) Interceptor {
 	return nil
 }
 
-func (app *Application) handleError(err error, ctx *defaultContext) {
-	// Try route-level and global filters
-	filters := append([]ExceptionFilter{}, app.globalFilters...)
+func (app *Application) handleError(err error, route *Route, ctx *defaultContext) {
+	// Try route/controller-level filters before global filters.
+	filters := []ExceptionFilter{}
+	if route != nil {
+		filters = append(filters, route.Filters...)
+	}
+	filters = append(filters, app.globalFilters...)
 
 	host := newArgumentsHost(ctx)
 	for _, f := range filters {

@@ -111,12 +111,12 @@ func (rb *RouteBuilder) Render(template string) *RouteBuilder {
 
 // routerImpl is the default Router implementation used during controller registration.
 type routerImpl struct {
-	prefix             string
-	routes             []*Route
-	controllerGuards   []any
+	prefix                 string
+	routes                 []*Route
+	controllerGuards       []any
 	controllerInterceptors []any
-	controllerPipes    []Pipe
-	controllerFilters  []ExceptionFilter
+	controllerPipes        []Pipe
+	controllerFilters      []ExceptionFilter
 }
 
 func newRouter() *routerImpl {
@@ -224,7 +224,7 @@ func (r *routerImpl) resolvedRoutes() []*Route {
 		route.Guards = append(r.controllerGuards, route.Guards...)
 		route.Interceptors = append(r.controllerInterceptors, route.Interceptors...)
 		route.Pipes = append(r.controllerPipes, route.Pipes...)
-		route.Filters = append(r.controllerFilters, route.Filters...)
+		route.Filters = append(route.Filters, r.controllerFilters...)
 	}
 	return r.routes
 }
